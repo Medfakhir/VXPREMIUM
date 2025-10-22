@@ -1,0 +1,7 @@
+[build]
+  base = "VX premium/vx-premium-website"
+  command = "npm run build"
+  publish = "VX premium/vx-premium-website/.next"
+
+[build.environment]
+  NODE_VERSION = "18"
