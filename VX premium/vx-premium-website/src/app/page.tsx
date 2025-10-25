@@ -1,10 +1,8 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Sphere, MeshDistortMaterial, Text3D, Float, Environment } from '@react-three/drei'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { useSpring, animated } from 'react-spring'
-import { useEffect, useRef, useState } from 'react'
+import { OrbitControls, Environment } from '@react-three/drei'
+import { useState, useEffect } from 'react'
 import { 
   IconCode, 
   IconDeviceMobile, 
@@ -28,13 +26,20 @@ import {
 // Dynamic 3D components
 import Scene3D from '@/components/Scene3D'
 import HolographicCard from '@/components/HolographicCard'
-import MatrixRain from '@/components/MatrixRain'
+import PackageModal from '@/components/PackageModal'
 
 export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [isClient, setIsClient] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<{
+    name: string;
+    price: string;
+    color: string;
+    features: string[];
+  } | null>(null)
   
   useEffect(() => {
     setIsClient(true)
@@ -56,6 +61,16 @@ export default function Home() {
       window.removeEventListener('scroll', handleScroll)
     }
   }, [])
+
+  const handlePackageSelect = (plan: {
+    name: string;
+    price: string;
+    color: string;
+    features: string[];
+  }) => {
+    setSelectedPackage(plan)
+    setModalOpen(true)
+  }
 
   const services = [
     {
@@ -428,7 +443,8 @@ export default function Home() {
                     ))}
                   </ul>
                   
-                  <button 
+                  <button
+                    onClick={() => handlePackageSelect(plan)}
                     className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-2xl font-bold text-base md:text-lg transition-all duration-200 flex items-center justify-center hover:scale-105 ${
                       plan.popular 
                         ? 'text-black' 
@@ -487,7 +503,7 @@ export default function Home() {
                   <IconMail className="text-cyan-400 mr-6 transition-colors duration-200" size={32} />
                   <div>
                     <p className="text-white font-bold text-xl">Neural Network</p>
-                    <p className="text-cyan-200 text-lg">contact@vxpremium.co.uk</p>
+                    <p className="text-cyan-200 text-lg">contact@vxpremium.com</p>
                   </div>
                 </div>
                 <div className="flex items-center group">
@@ -566,6 +582,15 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Package Selection Modal */}
+      {selectedPackage && (
+        <PackageModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          packageData={selectedPackage}
+        />
+      )}
     </div>
   )
 }

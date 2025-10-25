@@ -10,21 +10,22 @@ function AnimatedSphere({ position, color }: { position: [number, number, number
   
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.x = state.clock.elapsedTime * 0.2
-      meshRef.current.rotation.y = state.clock.elapsedTime * 0.3
+      // Smoother, slower rotation to reduce glitches
+      meshRef.current.rotation.x = state.clock.elapsedTime * 0.1
+      meshRef.current.rotation.y = state.clock.elapsedTime * 0.15
     }
   })
 
   return (
-    <Float speed={2} rotationIntensity={1} floatIntensity={2}>
-      <Sphere ref={meshRef} args={[1, 100, 200]} position={position}>
+    <Float speed={1} rotationIntensity={0.5} floatIntensity={1}>
+      <Sphere ref={meshRef} args={[1, 64, 64]} position={position}>
         <MeshDistortMaterial
           color={color}
           attach="material"
-          distort={0.5}
-          speed={2}
-          roughness={0.1}
-          metalness={0.8}
+          distort={0.3}
+          speed={1}
+          roughness={0.2}
+          metalness={0.6}
         />
       </Sphere>
     </Float>
