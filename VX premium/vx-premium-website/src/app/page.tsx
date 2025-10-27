@@ -510,7 +510,7 @@ export default function Home() {
                   <IconPhone className="text-purple-400 mr-6 transition-colors duration-200" size={32} />
                   <div>
                     <p className="text-white font-bold text-xl">Quantum Line</p>
-                    <p className="text-cyan-200 text-lg">+44 (0) 20 7123 4567</p>
+                    <p className="text-cyan-200 text-lg">+44 7520 678901</p>
                   </div>
                 </div>
                 <div className="flex items-center group">
