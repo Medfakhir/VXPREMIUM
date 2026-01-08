@@ -1,0 +1,16 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1a0033" />
+      <stop offset="100%" style="stop-color:#000000" />
+    </radialGradient>
+    <linearGradient id="txt" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00ffff" />
+      <stop offset="50%" style="stop-color:#ff0080" />
+      <stop offset="100%" style="stop-color:#8000ff" />
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="20" fill="url(#bg)"/>
+  <text x="90" y="115" font-family="Arial" font-size="90" font-weight="bold" 
+        text-anchor="middle" fill="url(#txt)">VX</text>
+</svg>

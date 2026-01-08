@@ -20,13 +20,15 @@ import {
   IconBrandReact,
   IconBrandNextjs,
   IconBrandPython,
-  IconBrandDocker
+  IconBrandDocker,
+  IconMovie
 } from '@tabler/icons-react'
 
 // Dynamic 3D components
 import Scene3D from '@/components/Scene3D'
 import HolographicCard from '@/components/HolographicCard'
 import PackageModal from '@/components/PackageModal'
+import FloatingParticles from '@/components/FloatingParticles'
 
 export default function Home() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
@@ -86,6 +88,13 @@ export default function Home() {
       description: "Next-generation mobile experiences beyond reality",
       features: ["AR/VR Integration", "Brain-Computer Interface", "Quantum Encryption", "Biometric Evolution"],
       color: "#ff0080"
+    },
+    {
+      icon: IconMovie,
+      title: "2D/3D Animation & Motion Design",
+      description: "Cinematic animations that bring digital experiences to life",
+      features: ["3D Scene Creation", "Particle Systems", "Interactive Motion", "Canvas Animations", "Smooth Transitions", "Performance Optimized"],
+      color: "#ffff00"
     },
     {
       icon: IconCode,
@@ -178,16 +187,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden relative gpu-accelerated">
+      {/* Floating Particles */}
+      {isClient && <FloatingParticles />}
+      
       {/* Mouse Follower - Only render on desktop */}
       {isClient && (
-        <div 
-          className="fixed w-6 h-6 bg-cyan-400 rounded-full pointer-events-none z-50 mix-blend-difference hidden md:block"
-          style={{
-            left: mousePosition.x - 12,
-            top: mousePosition.y - 12,
-            transition: 'none'
-          }}
-        />
+        <>
+          <div 
+            className="fixed w-6 h-6 bg-cyan-400 rounded-full pointer-events-none z-50 mix-blend-difference hidden md:block"
+            style={{
+              left: mousePosition.x - 12,
+              top: mousePosition.y - 12,
+              transition: 'none'
+            }}
+          />
+          <div 
+            className="fixed w-12 h-12 border-2 border-purple-400 rounded-full pointer-events-none z-50 mix-blend-screen hidden md:block animate-pulse"
+            style={{
+              left: mousePosition.x - 24,
+              top: mousePosition.y - 24,
+              transition: 'all 0.15s ease-out'
+            }}
+          />
+        </>
       )}
 
       {/* Mobile-Responsive Navigation */}
@@ -260,20 +282,20 @@ export default function Home() {
         
         <div className="absolute inset-0 flex items-center justify-center z-10 px-4">
           <div className="text-center max-w-6xl mx-auto animate-fade-in">
-            <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black mb-6 md:mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
+            <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black mb-6 md:mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 animate-gradient-shift">
               BEYOND
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-8 md:mb-12 text-cyan-300 max-w-4xl mx-auto font-light tracking-wide px-4">
               WE DON&apos;T BUILD WEBSITES. WE ARCHITECT DIGITAL REALITIES.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 md:gap-6 justify-center items-center px-4">
-              <button className="w-full sm:w-auto px-6 md:px-12 py-3 md:py-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-full text-black font-bold text-lg md:text-xl hover:shadow-xl transition-all duration-200 flex items-center justify-center group">
-                <IconRocket className="mr-2 md:mr-3" size={20} />
+              <button className="w-full sm:w-auto px-6 md:px-12 py-3 md:py-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-full text-black font-bold text-lg md:text-xl hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center group animate-bounce-slow">
+                <IconRocket className="mr-2 md:mr-3 group-hover:rotate-12 transition-transform duration-300" size={20} />
                 <span className="hidden sm:inline">TRANSCEND REALITY</span>
                 <span className="sm:hidden">TRANSCEND</span>
               </button>
-              <button className="w-full sm:w-auto px-6 md:px-12 py-3 md:py-4 border-2 border-cyan-400 text-cyan-400 rounded-full font-bold text-lg md:text-xl hover:bg-cyan-400 hover:text-black transition-all duration-200 flex items-center justify-center group">
-                <IconStar className="mr-2 md:mr-3" size={20} />
+              <button className="w-full sm:w-auto px-6 md:px-12 py-3 md:py-4 border-2 border-cyan-400 text-cyan-400 rounded-full font-bold text-lg md:text-xl hover:bg-cyan-400 hover:text-black hover:scale-105 transition-all duration-300 flex items-center justify-center group">
+                <IconStar className="mr-2 md:mr-3 group-hover:rotate-180 transition-transform duration-500" size={20} />
                 <span className="hidden sm:inline">WITNESS THE IMPOSSIBLE</span>
                 <span className="sm:hidden">WITNESS</span>
               </button>
@@ -295,20 +317,24 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
           {services.map((service, index) => (
-            <div key={index} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div 
+              key={index} 
+              className={`animate-fade-in ${index % 2 === 0 ? 'animate-slide-in-left' : 'animate-slide-in-right'}`} 
+              style={{ animationDelay: `${index * 0.15}s` }}
+            >
               <HolographicCard className="h-full group">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 md:mb-6">
                   <div 
-                    className="p-3 md:p-4 rounded-2xl mb-3 sm:mb-0 sm:mr-4 relative overflow-hidden transition-all duration-200"
+                    className="p-3 md:p-4 rounded-2xl mb-3 sm:mb-0 sm:mr-4 relative overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:rotate-6"
                     style={{ backgroundColor: service.color + '20' }}
                   >
-                    <service.icon size={28} style={{ color: service.color }} />
+                    <service.icon size={28} style={{ color: service.color }} className="transition-transform duration-300 group-hover:scale-125" />
                     <div 
-                      className="absolute inset-0 bg-gradient-to-r opacity-20 group-hover:opacity-30 transition-opacity duration-200"
+                      className="absolute inset-0 bg-gradient-to-r opacity-20 group-hover:opacity-40 transition-opacity duration-300"
                       style={{ background: `linear-gradient(45deg, ${service.color}, transparent)` }}
                     />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold text-white">{service.title}</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-cyan-400 group-hover:to-purple-400 transition-all duration-300">{service.title}</h3>
                 </div>
                 <p className="text-cyan-200 mb-4 md:mb-6 text-base md:text-lg leading-relaxed">{service.description}</p>
                 <ul className="space-y-2 md:space-y-3">
@@ -340,11 +366,11 @@ export default function Home() {
           {techIcons.map((tech, index) => (
             <div
               key={index}
-              className="relative group animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className="relative group animate-scale-in"
+              style={{ animationDelay: `${index * 0.15}s` }}
             >
               <div 
-                className="p-4 md:p-8 rounded-2xl md:rounded-3xl border-2 backdrop-blur-xl transition-all duration-200 group-hover:shadow-lg hover:scale-105"
+                className="p-4 md:p-8 rounded-2xl md:rounded-3xl border-2 backdrop-blur-xl transition-all duration-300 group-hover:shadow-2xl hover:scale-110 hover:-rotate-3"
                 style={{ 
                   borderColor: tech.color + '40',
                   backgroundColor: tech.color + '10',
@@ -352,7 +378,7 @@ export default function Home() {
                 }}
               >
                 <div className="flex flex-col items-center">
-                  <tech.icon size={32} style={{ color: tech.color }} className="md:w-12 md:h-12" />
+                  <tech.icon size={32} style={{ color: tech.color }} className="md:w-12 md:h-12 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-12 animate-rotate-3d" />
                   <div className="mt-2 md:mt-4 text-center">
                     <span className="text-white font-bold text-sm md:text-lg">{tech.name}</span>
                   </div>
