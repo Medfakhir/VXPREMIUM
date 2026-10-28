@@ -101,12 +101,10 @@ export async function readJson<T>(key: string): Promise<T | null> {
   if (useLocalStore) {
     return readLocal<T>(key);
   }
-  console.log("[store] get start", key);
   const raw = (await blobStore().get(key, {
     consistency: "strong",
     type: "text",
   })) as string | null;
-  console.log("[store] get done", key, raw === null ? "missing" : "found");
   if (raw === null) return null;
   return JSON.parse(raw) as T;
 }
