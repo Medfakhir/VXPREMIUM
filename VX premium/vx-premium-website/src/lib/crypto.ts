@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
   scrypt,
   timingSafeEqual,
@@ -71,6 +72,12 @@ function encryptionKey() {
     );
   }
   return createHash("sha256").update(raw).digest();
+}
+
+export function deviceKeyFingerprint(deviceKey: string) {
+  return createHmac("sha256", encryptionKey())
+    .update(deviceKey.trim())
+    .digest("hex");
 }
 
 export function encryptSecret(value: string): EncryptedValue {

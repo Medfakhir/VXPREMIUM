@@ -1,5 +1,6 @@
 export type UserStatus = "active" | "disabled";
 export type PlaylistType = "xtream" | "m3u";
+export type LineStatus = "active" | "disabled";
 
 export type AdminUser = {
   id: string;
@@ -31,12 +32,50 @@ export type PlaylistView = {
   updatedAt: string;
 };
 
+export type LineView = {
+  id: string;
+  name: string;
+  mac: string;
+  userId: string;
+  userName: string;
+  playlistId: string;
+  playlistName: string;
+  status: LineStatus;
+  expiresAt: string;
+  lastSeenAt: string | null;
+  lastDeviceName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlayerPlaylist = {
+  id: string;
+  name: string;
+  type: PlaylistType;
+  serverUrl: string;
+  username: string;
+  password: string;
+  epgUrl: string | null;
+};
+
+export type PlayerActivationResponse = {
+  line: {
+    id: string;
+    name: string;
+    status: LineStatus;
+    expiresAt: string;
+  };
+  playlist: PlayerPlaylist;
+};
+
 export type OverviewStats = {
   totalUsers: number;
   activeUsers: number;
   expiringSoon: number;
   disabledUsers: number;
   playlists: number;
+  lines: number;
+  activeLines: number;
   devices: number;
   onlineDevices: number;
 };

@@ -5,6 +5,7 @@ import type { AdminUser, UserStatus } from "@/lib/types";
 
 const USER_PREFIX = "users/";
 const DEVICE_PREFIX = "devices/";
+const LINE_PREFIX = "lines/";
 
 export type CreateUserInput = {
   username: string;
@@ -23,6 +24,8 @@ export type DeviceRecord = {
   userId: string;
   name: string;
   lastSeenAt: string;
+  lineId?: string;
+  mac?: string;
 };
 
 export function isExpired(user: Pick<AdminUser, "expiresAt">) {
@@ -127,6 +130,7 @@ export async function deleteUser(id: string) {
     throw new ApiError("User not found", 404);
   }
   await deletePlaylistsForUser(id);
+  await deleteLinesForUser(id);
   await resetDevices(id);
   await deleteJson(`${USER_PREFIX}${id}`);
   return user;
@@ -136,6 +140,23 @@ export async function listDevices() {
   const keys = await listJsonKeys(DEVICE_PREFIX);
   const devices = await Promise.all(keys.map((key) => readJson<DeviceRecord>(key)));
   return devices.filter((device): device is DeviceRecord => device !== null);
+}
+
+async function deleteLinesForUser(userId: string) {
+  const keys = await listJsonKeys(LINE_PREFIX);
+  const lines = await Promise.all(
+    keys.map((key) =>
+      readJson<{ id: string; userId: string }>(key),
+    ),
+  );
+  const owned = lines.filter(
+    (line): line is { id: string; userId: string } =>
+      line !== null && line.userId === userId,
+  );
+  await Promise.all(
+    owned.map((line) => deleteJson(`${LINE_PREFIX}${line.id}`)),
+  );
+  return owned.length;
 }
 
 async function deletePlaylistsForUser(userId: string) {

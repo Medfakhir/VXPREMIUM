@@ -32,6 +32,13 @@ const navigation = [
       <path d="M4 6h16M4 12h10M4 18h7m6-4 5 3-5 3v-6Z" />
     ),
   },
+  {
+    href: "/admin/lines",
+    label: "Lines",
+    icon: (
+      <path d="M5 12h4l2-5 3 10 2-5h3M4 4h16v16H4z" />
+    ),
+  },
 ];
 
 function NavIcon({ children }: { children: React.ReactNode }) {

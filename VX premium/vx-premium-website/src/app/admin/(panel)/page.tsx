@@ -15,6 +15,9 @@ const activityLabels: Record<string, string> = {
   "user.reset_devices": "Devices reset",
   "playlist.create": "Playlist added",
   "playlist.delete": "Playlist removed",
+  "line.create": "Device line paired",
+  "line.update": "Device line updated",
+  "line.delete": "Device line removed",
 };
 
 export default function AdminOverviewPage() {
@@ -88,7 +91,7 @@ export default function AdminOverviewPage() {
         </div>
       ) : null}
 
-      <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <StatCard
           label="Active users"
           value={stats?.activeUsers}
@@ -100,6 +103,12 @@ export default function AdminOverviewPage() {
           value={stats?.expiringSoon}
           note="Within the next 7 days"
           tone="amber"
+        />
+        <StatCard
+          label="Active lines"
+          value={stats?.activeLines}
+          note={`${stats?.lines ?? 0} paired device lines`}
+          tone="emerald"
         />
         <StatCard
           label="Playlists"

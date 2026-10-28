@@ -116,3 +116,30 @@ export const createPlaylistSchema = z
       });
     }
   });
+
+export const createLineSchema = z.object({
+  name: z.string().trim().max(80).optional().default(""),
+  mac: z.string().trim().min(1, "MAC address is required").max(32),
+  deviceKey: z.string().trim().regex(/^\d{6}$/, "Device key must be 6 digits"),
+  userId: z.string().min(1, "Select a user"),
+  playlistId: z.string().min(1, "Select an Xtream playlist"),
+  status: z.enum(["active", "disabled"]).default("active"),
+  expiresAt: z.string().trim().max(40).optional().default(""),
+});
+
+export const updateLineSchema = z
+  .object({
+    name: z.string().trim().max(80).optional(),
+    playlistId: z.string().min(1).optional(),
+    status: z.enum(["active", "disabled"]).optional(),
+    expiresAt: z.string().trim().max(40).optional(),
+  })
+  .refine((value) => Object.values(value).some((item) => item !== undefined), {
+    message: "No changes supplied",
+  });
+
+export const activateLineSchema = z.object({
+  mac: z.string().trim().min(1).max(32),
+  deviceKey: z.string().trim().regex(/^\d{6}$/),
+  deviceName: z.string().trim().max(120).optional().default(""),
+});

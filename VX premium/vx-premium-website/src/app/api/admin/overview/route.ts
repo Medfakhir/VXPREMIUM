@@ -1,6 +1,7 @@
 import { json, withAdmin } from "@/lib/api";
 import { recentAudit } from "@/lib/auth";
 import { getStorageMode } from "@/lib/json-store";
+import { listLines } from "@/lib/lines";
 import { listPlaylists } from "@/lib/playlists";
 import { isExpired, listDevices, listUsers } from "@/lib/users";
 import type { OverviewResponse } from "@/lib/types";
@@ -10,9 +11,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   return withAdmin(request, async () => {
-    const [users, playlists, devices, audit] = await Promise.all([
+    const [users, playlists, lines, devices, audit] = await Promise.all([
       listUsers(),
       listPlaylists(),
+      listLines(),
       listDevices(),
       recentAudit(8),
     ]);
@@ -35,6 +37,12 @@ export async function GET(request: Request) {
         ).length,
         disabledUsers: users.filter((user) => user.status === "disabled").length,
         playlists: playlists.length,
+        lines: lines.length,
+        activeLines: lines.filter(
+          (line) =>
+            line.status === "active" &&
+            new Date(line.expiresAt).getTime() > now,
+        ).length,
         devices: devices.length,
         onlineDevices: devices.filter(
           (device) => new Date(device.lastSeenAt).getTime() >= onlineWindow,

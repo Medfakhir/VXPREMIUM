@@ -6,6 +6,7 @@ import type { PlaylistType, PlaylistView } from "@/lib/types";
 import { getUser } from "@/lib/users";
 
 const PLAYLIST_PREFIX = "playlists/";
+const LINE_PREFIX = "lines/";
 
 export type PlaylistRecord = {
   id: string;
@@ -74,11 +75,34 @@ export async function createPlaylist(input: CreatePlaylistInput) {
   return playlist;
 }
 
+export async function getPlaylist(id: string) {
+  return readJson<PlaylistRecord>(`${PLAYLIST_PREFIX}${id}`);
+}
+
+async function deleteLinesForPlaylist(playlistId: string) {
+  const keys = await listJsonKeys(LINE_PREFIX);
+  const lines = await Promise.all(
+    keys.map((key) => readJson<{ id: string; playlistId: string }>(key)),
+  );
+  const linked = lines.filter(
+    (line): line is { id: string; playlistId: string } =>
+      line !== null && line.playlistId === playlistId,
+  );
+  await Promise.all(
+    linked.map(async (line) => {
+      await deleteJson(`${LINE_PREFIX}${line.id}`);
+      await deleteJson(`devices/line-${line.id}`);
+    }),
+  );
+  return linked.length;
+}
+
 export async function deletePlaylist(id: string) {
   const playlist = await readJson<PlaylistRecord>(`${PLAYLIST_PREFIX}${id}`);
   if (!playlist) {
     throw new ApiError("Playlist not found", 404);
   }
+  await deleteLinesForPlaylist(id);
   await deleteJson(`${PLAYLIST_PREFIX}${id}`);
   return playlist;
 }
