@@ -101,7 +101,12 @@ export async function readJson<T>(key: string): Promise<T | null> {
   if (useLocalStore) {
     return readLocal<T>(key);
   }
-  return (await blobStore().get(key, { type: "json", consistency: "strong" })) as T | null;
+  const raw = (await blobStore().get(key, {
+    consistency: "strong",
+    type: "text",
+  })) as string | null;
+  if (raw === null) return null;
+  return JSON.parse(raw) as T;
 }
 
 export async function writeJson<T>(
