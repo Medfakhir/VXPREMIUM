@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { ApiError } from "@/lib/api";
 import { encryptSecret, EncryptedValue } from "@/lib/crypto";
-import { deleteJson, listJsonKeys, readJson, writeJson } from "@/lib/json-store";
+import {
+  deleteJson,
+  listJsonKeys,
+  readJson,
+  readJsonIfExists,
+  writeJson,
+} from "@/lib/json-store";
 import type { PlaylistType, PlaylistView } from "@/lib/types";
 import { getUser } from "@/lib/users";
 
@@ -76,7 +82,7 @@ export async function createPlaylist(input: CreatePlaylistInput) {
 }
 
 export async function getPlaylist(id: string) {
-  return readJson<PlaylistRecord>(`${PLAYLIST_PREFIX}${id}`);
+  return readJsonIfExists<PlaylistRecord>(`${PLAYLIST_PREFIX}${id}`);
 }
 
 async function deleteLinesForPlaylist(playlistId: string) {
@@ -98,7 +104,9 @@ async function deleteLinesForPlaylist(playlistId: string) {
 }
 
 export async function deletePlaylist(id: string) {
-  const playlist = await readJson<PlaylistRecord>(`${PLAYLIST_PREFIX}${id}`);
+  const playlist = await readJsonIfExists<PlaylistRecord>(
+    `${PLAYLIST_PREFIX}${id}`,
+  );
   if (!playlist) {
     throw new ApiError("Playlist not found", 404);
   }

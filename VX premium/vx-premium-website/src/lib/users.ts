@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { ApiError } from "@/lib/api";
-import { deleteJson, listJsonKeys, readJson, writeJson } from "@/lib/json-store";
+import {
+  deleteJson,
+  listJsonKeys,
+  readJson,
+  readJsonIfExists,
+  writeJson,
+} from "@/lib/json-store";
 import type { AdminUser, UserStatus } from "@/lib/types";
 
 const USER_PREFIX = "users/";
@@ -51,7 +57,7 @@ export async function listUsers() {
 }
 
 export async function getUser(id: string) {
-  return readJson<AdminUser>(`${USER_PREFIX}${id}`);
+  return readJsonIfExists<AdminUser>(`${USER_PREFIX}${id}`);
 }
 
 async function assertUsernameAvailable(username: string, exceptId?: string) {

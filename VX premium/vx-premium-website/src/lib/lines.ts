@@ -5,7 +5,13 @@ import {
   deviceKeyFingerprint,
   safeEqual,
 } from "@/lib/crypto";
-import { deleteJson, listJsonKeys, readJson, writeJson } from "@/lib/json-store";
+import {
+  deleteJson,
+  listJsonKeys,
+  readJson,
+  readJsonIfExists,
+  writeJson,
+} from "@/lib/json-store";
 import { getPlaylist, listPlaylists } from "@/lib/playlists";
 import type { LineStatus, LineView, PlayerActivationResponse } from "@/lib/types";
 import { getUser, isExpired, listUsers } from "@/lib/users";
@@ -89,7 +95,7 @@ export async function listLines() {
 }
 
 export async function getLine(id: string) {
-  return readJson<LineRecord>(`${LINE_PREFIX}${id}`);
+  return readJsonIfExists<LineRecord>(`${LINE_PREFIX}${id}`);
 }
 
 async function findLineByMac(mac: string) {

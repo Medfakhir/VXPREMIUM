@@ -9,7 +9,13 @@ import {
   SecurityConfigError,
   verifyPassword,
 } from "@/lib/crypto";
-import { deleteJson, listJsonKeys, readJson, writeJson } from "@/lib/json-store";
+import {
+  deleteJson,
+  listJsonKeys,
+  readJson,
+  readJsonIfExists,
+  writeJson,
+} from "@/lib/json-store";
 import type { AdminSessionView } from "@/lib/types";
 
 const ADMIN_PREFIX = "admins/";
@@ -76,7 +82,7 @@ export async function findAdminByEmail(email: string) {
 }
 
 async function getAdmin(id: string) {
-  return readJson<AdminAccount>(`${ADMIN_PREFIX}${id}`);
+  return readJsonIfExists<AdminAccount>(`${ADMIN_PREFIX}${id}`);
 }
 
 export async function createSession(admin: AdminAccount) {
@@ -103,7 +109,9 @@ export async function readSession(request: Request): Promise<AuthContext | null>
     return null;
   }
   const tokenHash = hashToken(token);
-  const session = await readJson<AdminSession>(`${SESSION_PREFIX}${tokenHash}`);
+  const session = await readJsonIfExists<AdminSession>(
+    `${SESSION_PREFIX}${tokenHash}`,
+  );
   if (!session) {
     return null;
   }

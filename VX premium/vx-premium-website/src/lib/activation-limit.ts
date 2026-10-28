@@ -1,5 +1,5 @@
 import { hashToken } from "@/lib/crypto";
-import { deleteJson, readJson, writeJson } from "@/lib/json-store";
+import { deleteJson, readJsonIfExists, writeJson } from "@/lib/json-store";
 
 const PREFIX = "activation-throttle/";
 const LIMIT = 20;
@@ -16,7 +16,7 @@ function keyFor(ip: string, mac: string) {
 
 export async function activationAllowed(ip: string, mac: string) {
   console.log("[limit] read start");
-  const record = await readJson<AttemptRecord>(keyFor(ip, mac));
+  const record = await readJsonIfExists<AttemptRecord>(keyFor(ip, mac));
   console.log("[limit] read done", record ? "found" : "missing");
   if (!record) return true;
   if (new Date(record.resetAt).getTime() <= Date.now()) return true;
@@ -25,7 +25,7 @@ export async function activationAllowed(ip: string, mac: string) {
 
 export async function recordActivationFailure(ip: string, mac: string) {
   const key = keyFor(ip, mac);
-  const current = await readJson<AttemptRecord>(key);
+  const current = await readJsonIfExists<AttemptRecord>(key);
   const now = Date.now();
   const active =
     current && new Date(current.resetAt).getTime() > now ? current : null;

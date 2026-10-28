@@ -111,6 +111,15 @@ export async function readJson<T>(key: string): Promise<T | null> {
   return JSON.parse(raw) as T;
 }
 
+export async function readJsonIfExists<T>(key: string): Promise<T | null> {
+  if (useLocalStore) {
+    return readLocal<T>(key);
+  }
+  const { blobs } = await blobStore().list({ prefix: key });
+  if (!blobs.some((blob) => blob.key === key)) return null;
+  return readJson<T>(key);
+}
+
 export async function writeJson<T>(
   key: string,
   value: T,
