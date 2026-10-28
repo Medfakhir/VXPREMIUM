@@ -1,6 +1,13 @@
 [build]
-  command = "npm run build"
+  command = "npm run build && mkdir -p .next/downloads && cp public/downloads/*.apk .next/downloads/"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "22"
+
+[[headers]]
+  for = "/downloads/*.apk"
+  [headers.values]
+    Content-Type = "application/vnd.android.package-archive"
+    Content-Disposition = 'attachment; filename="VX-Premium-1.2.0-release.apk"'
+    X-Content-Type-Options = "nosniff"

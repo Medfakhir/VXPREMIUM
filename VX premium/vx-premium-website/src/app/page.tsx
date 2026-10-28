@@ -81,7 +81,15 @@ export default function Home() {
 
         <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>VX Premium</p>
-          <p>Netlify deployment / JSON storage online</p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/downloads/VX-Premium-1.2.0-release.apk"
+              className="text-slate-300 transition hover:text-white"
+            >
+              Download Android APK
+            </Link>
+            <p>Netlify deployment / JSON storage online</p>
+          </div>
         </footer>
       </div>
     </main>

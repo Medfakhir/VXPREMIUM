@@ -96,6 +96,13 @@ export default function ActivatePage() {
             check that the MAC address in the admin panel matches the one on the
             TV exactly.
           </div>
+
+          <Link
+            href="/downloads/VX-Premium-1.2.0-release.apk"
+            className="btn-secondary mt-4"
+          >
+            Download the Android APK
+          </Link>
         </section>
 
         <section className="admin-card w-full p-6 sm:p-8">
