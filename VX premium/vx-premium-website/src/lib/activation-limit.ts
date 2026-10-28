@@ -15,7 +15,9 @@ function keyFor(ip: string, mac: string) {
 }
 
 export async function activationAllowed(ip: string, mac: string) {
+  console.log("[limit] read start");
   const record = await readJson<AttemptRecord>(keyFor(ip, mac));
+  console.log("[limit] read done", record ? "found" : "missing");
   if (!record) return true;
   if (new Date(record.resetAt).getTime() <= Date.now()) return true;
   return record.count < LIMIT;
