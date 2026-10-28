@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const features = [
   {
     label: "Xtream",
@@ -30,9 +32,17 @@ export default function Home() {
               <p className="text-xs text-slate-400">Streaming control center</p>
             </div>
           </div>
-          <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">
-            Platform foundation ready
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="hidden rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200 sm:inline-flex">
+              Platform online
+            </span>
+            <Link
+              href="/admin"
+              className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
+            >
+              Admin
+            </Link>
+          </div>
         </header>
 
         <section className="flex flex-1 flex-col justify-center py-20">
@@ -65,7 +75,7 @@ export default function Home() {
 
         <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>VX Premium</p>
-          <p>Netlify deployment / JSON storage ready</p>
+          <p>Netlify deployment / JSON storage online</p>
         </footer>
       </div>
     </main>
