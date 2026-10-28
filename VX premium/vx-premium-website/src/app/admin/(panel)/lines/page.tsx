@@ -149,6 +149,14 @@ export default function LinesPage() {
             Pair the MAC address and DEVICE KEY shown on the player with an
             Xtream playlist.
           </p>
+          <Link
+            href="/activate"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex text-xs font-semibold text-cyan-300 transition hover:text-cyan-200"
+          >
+            Open user activation page
+          </Link>
         </div>
         <button
           type="button"

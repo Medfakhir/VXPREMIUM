@@ -37,6 +37,12 @@ export default function Home() {
               Platform online
             </span>
             <Link
+              href="/activate"
+              className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/50 hover:text-white"
+            >
+              Activate device
+            </Link>
+            <Link
               href="/admin"
               className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
             >
