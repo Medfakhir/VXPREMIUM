@@ -52,12 +52,20 @@ export default function ActivatePage() {
                 </span>
               </span>
             </Link>
-            <Link
-              href="/admin"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
-            >
-              Admin
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/portal/login"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-fuchsia-300/30 hover:text-white"
+              >
+                User portal
+              </Link>
+              <Link
+                href="/admin"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
+              >
+                Admin
+              </Link>
+            </div>
           </header>
 
           <p className="mt-14 text-xs font-bold uppercase tracking-[0.32em] text-cyan-300">

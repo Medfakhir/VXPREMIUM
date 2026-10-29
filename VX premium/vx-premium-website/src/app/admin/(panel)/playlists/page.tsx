@@ -4,7 +4,13 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { adminFetch } from "@/lib/admin-client";
 import { formatDate } from "@/lib/format";
-import type { AdminUser, PlaylistType, PlaylistView } from "@/lib/types";
+import type {
+  AdminUser,
+  LineView,
+  PlaylistStatus,
+  PlaylistType,
+  PlaylistView,
+} from "@/lib/types";
 
 type PlaylistsResponse = {
   playlists: PlaylistView[];
@@ -14,11 +20,19 @@ type UsersResponse = {
   users: AdminUser[];
 };
 
+type LinesResponse = {
+  lines: LineView[];
+};
+
 export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<PlaylistView[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [lines, setLines] = useState<LineView[]>([]);
   const [query, setQuery] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState<PlaylistView | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
@@ -26,12 +40,14 @@ export default function PlaylistsPage() {
 
   const load = useCallback(async () => {
     try {
-      const [playlistResult, userResult] = await Promise.all([
+      const [playlistResult, userResult, lineResult] = await Promise.all([
         adminFetch<PlaylistsResponse>("/api/admin/playlists"),
         adminFetch<UsersResponse>("/api/admin/users"),
+        adminFetch<LinesResponse>("/api/admin/lines"),
       ]);
       setPlaylists(playlistResult.playlists);
       setUsers(userResult.users);
+      setLines(lineResult.lines);
       setError("");
     } catch (caught) {
       setError(
@@ -47,11 +63,13 @@ export default function PlaylistsPage() {
     Promise.all([
       adminFetch<PlaylistsResponse>("/api/admin/playlists"),
       adminFetch<UsersResponse>("/api/admin/users"),
+      adminFetch<LinesResponse>("/api/admin/lines"),
     ])
-      .then(([playlistResult, userResult]) => {
+      .then(([playlistResult, userResult, lineResult]) => {
         if (!active) return;
         setPlaylists(playlistResult.playlists);
         setUsers(userResult.users);
+        setLines(lineResult.lines);
       })
       .catch((caught) => {
         if (!active) return;
@@ -71,12 +89,44 @@ export default function PlaylistsPage() {
     const term = query.trim().toLowerCase();
     if (!term) return playlists;
     return playlists.filter((playlist) =>
-      [playlist.name, playlist.userName, playlist.type, playlist.endpointHost]
+      [
+        playlist.name,
+        playlist.userName,
+        playlist.type,
+        playlist.endpointHost,
+        playlist.status,
+        ...playlist.assignedLineNames,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(term),
     );
   }, [playlists, query]);
+
+  async function togglePlaylist(playlist: PlaylistView) {
+    setBusyId(playlist.id);
+    setError("");
+    try {
+      const next: PlaylistStatus =
+        playlist.status === "active" ? "disabled" : "active";
+      await adminFetch(`/api/admin/playlists/${playlist.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: next }),
+      });
+      setNotice(
+        next === "disabled"
+          ? `"${playlist.name}" was disabled.`
+          : `"${playlist.name}" was enabled.`,
+      );
+      await load();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not update playlist",
+      );
+    } finally {
+      setBusyId("");
+    }
+  }
 
   async function removePlaylist(playlist: PlaylistView) {
     if (!window.confirm(`Delete playlist "${playlist.name}"?`)) return;
@@ -202,11 +252,28 @@ export default function PlaylistsPage() {
                           <p className="font-semibold text-white">{playlist.name}</p>
                           <p className="mt-0.5 text-xs uppercase tracking-[0.12em] text-slate-500">
                             {playlist.type === "xtream" ? "Xtream codes" : "M3U URL"}
+                            {playlist.ownerLineId ? " / user source" : " / provider source"}
                           </p>
+                          <span
+                            className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${
+                              playlist.status === "active"
+                                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
+                                : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+                            }`}
+                          >
+                            {playlist.status === "active" ? "Active" : "Disabled"}
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-slate-300">{playlist.userName}</td>
+                    <td className="px-5 py-4">
+                      <p className="text-slate-300">{playlist.userName}</p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {playlist.assignedLineNames.length
+                          ? playlist.assignedLineNames.join(", ")
+                          : "Not assigned to a device"}
+                      </p>
+                    </td>
                     <td className="px-5 py-4">
                       <p className="text-slate-300">
                         {playlist.endpointHost || "Configured"}
@@ -231,15 +298,33 @@ export default function PlaylistsPage() {
                     <td className="px-5 py-4 text-slate-400">
                       {formatDate(playlist.createdAt)}
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-300/10 disabled:opacity-40"
-                        onClick={() => void removePlaylist(playlist)}
-                        disabled={busyId === playlist.id}
-                      >
-                        Delete
-                      </button>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06] disabled:opacity-40"
+                          onClick={() => setEditingPlaylist(playlist)}
+                          disabled={busyId === playlist.id}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-300/10 disabled:opacity-40"
+                          onClick={() => void togglePlaylist(playlist)}
+                          disabled={busyId === playlist.id}
+                        >
+                          {playlist.status === "active" ? "Disable" : "Enable"}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-300/10 disabled:opacity-40"
+                          onClick={() => void removePlaylist(playlist)}
+                          disabled={busyId === playlist.id}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -279,9 +364,22 @@ export default function PlaylistsPage() {
       {editorOpen ? (
         <PlaylistEditorDialog
           users={users}
+          lines={lines}
           onClose={() => setEditorOpen(false)}
           onSaved={async (message) => {
             setEditorOpen(false);
+            setNotice(message);
+            await load();
+          }}
+        />
+      ) : null}
+
+      {editingPlaylist ? (
+        <PlaylistEditDialog
+          playlist={editingPlaylist}
+          onClose={() => setEditingPlaylist(null)}
+          onSaved={async (message) => {
+            setEditingPlaylist(null);
             setNotice(message);
             await load();
           }}
@@ -331,14 +429,17 @@ function TypeIcon({ type }: { type: PlaylistType }) {
 
 function PlaylistEditorDialog({
   users,
+  lines,
   onClose,
   onSaved,
 }: {
   users: AdminUser[];
+  lines: LineView[];
   onClose: () => void;
   onSaved: (message: string) => Promise<void>;
 }) {
   const [userId, setUserId] = useState(users[0]?.id ?? "");
+  const [lineId, setLineId] = useState("");
   const [name, setName] = useState("");
   const [type, setType] = useState<PlaylistType>("xtream");
   const [serverUrl, setServerUrl] = useState("");
@@ -348,6 +449,8 @@ function PlaylistEditorDialog({
   const [epgUrl, setEpgUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const userLines = lines.filter((line) => line.userId === userId);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -366,6 +469,7 @@ function PlaylistEditorDialog({
         method: "POST",
         body: JSON.stringify({
           userId,
+          lineId,
           name,
           type,
           serverUrl,
@@ -425,12 +529,30 @@ function PlaylistEditorDialog({
               <select
                 className="admin-input"
                 value={userId}
-                onChange={(event) => setUserId(event.target.value)}
+                onChange={(event) => {
+                  setUserId(event.target.value);
+                  setLineId("");
+                }}
                 required
               >
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name} (@{user.username})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="admin-label">Assign to device (optional)</span>
+              <select
+                className="admin-input"
+                value={lineId}
+                onChange={(event) => setLineId(event.target.value)}
+              >
+                <option value="">Keep unassigned</option>
+                {userLines.map((line) => (
+                  <option key={line.id} value={line.id}>
+                    {line.name} — {line.mac}
                   </option>
                 ))}
               </select>
@@ -549,6 +671,249 @@ function PlaylistEditorDialog({
             </button>
             <button type="submit" className="btn-primary" disabled={busy}>
               {busy ? "Saving..." : "Add playlist"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PlaylistEditDialog({
+  playlist,
+  onClose,
+  onSaved,
+}: {
+  playlist: PlaylistView;
+  onClose: () => void;
+  onSaved: (message: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(playlist.name);
+  const [type, setType] = useState<PlaylistType>(playlist.type);
+  const [status, setStatus] = useState<PlaylistStatus>(playlist.status);
+  const [serverUrl, setServerUrl] = useState(playlist.serverUrl);
+  const [username, setUsername] = useState(playlist.username);
+  const [password, setPassword] = useState("");
+  const [m3uUrl, setM3uUrl] = useState("");
+  const [epgUrl, setEpgUrl] = useState("");
+  const [clearEpg, setClearEpg] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const body: Record<string, unknown> = {
+        name,
+        type,
+        status,
+      };
+      if (type === "xtream") {
+        body.serverUrl = serverUrl;
+        body.username = username;
+        if (password) body.password = password;
+      } else if (m3uUrl) {
+        body.m3uUrl = m3uUrl;
+      }
+      if (clearEpg) body.epgUrl = "";
+      else if (epgUrl) body.epgUrl = epgUrl;
+
+      await adminFetch(`/api/admin/playlists/${playlist.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      await onSaved(`"${name}" was updated.`);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not update playlist",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        aria-label="Close dialog"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="playlist-edit-dialog-title"
+        className="admin-scrollbar relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-white/10 bg-[#0a0f19] p-6 shadow-2xl sm:rounded-2xl sm:p-7"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+              Edit source
+            </p>
+            <h2 id="playlist-edit-dialog-title" className="mt-2 text-2xl font-bold tracking-tight">
+              {playlist.name}
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              {playlist.userName}
+              {playlist.assignedLineNames.length
+                ? ` · ${playlist.assignedLineNames.join(", ")}`
+                : " · Not assigned"}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-slate-400 hover:text-white"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <form className="mt-6" onSubmit={submit}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="admin-label">Playlist name</span>
+              <input
+                className="admin-input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+                minLength={2}
+                maxLength={80}
+              />
+            </label>
+            <label className="block">
+              <span className="admin-label">Status</span>
+              <select
+                className="admin-input"
+                value={status}
+                onChange={(event) =>
+                  setStatus(event.target.value as PlaylistStatus)
+                }
+              >
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </label>
+            <div>
+              <span className="admin-label">Source type</span>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+                {(["xtream", "m3u"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setType(option)}
+                    className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                      type === option
+                        ? "bg-cyan-300/15 text-cyan-200"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {option === "xtream" ? "Xtream" : "M3U"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {type === "xtream" ? (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block sm:col-span-2">
+                <span className="admin-label">Server URL</span>
+                <input
+                  className="admin-input"
+                  value={serverUrl}
+                  onChange={(event) => setServerUrl(event.target.value)}
+                  required
+                  autoCapitalize="none"
+                />
+              </label>
+              <label className="block">
+                <span className="admin-label">Xtream username</span>
+                <input
+                  className="admin-input"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  required
+                  autoCapitalize="none"
+                />
+              </label>
+              <label className="block">
+                <span className="admin-label">New password (optional)</span>
+                <input
+                  className="admin-input"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Leave blank to keep"
+                  autoComplete="new-password"
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="mt-4">
+              <label className="block">
+                <span className="admin-label">New M3U URL (optional)</span>
+                <input
+                  className="admin-input"
+                  value={m3uUrl}
+                  onChange={(event) => setM3uUrl(event.target.value)}
+                  placeholder="Leave blank to keep the current URL"
+                  autoCapitalize="none"
+                />
+              </label>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <label className="block">
+              <span className="admin-label">New EPG URL (optional)</span>
+              <input
+                className="admin-input"
+                value={epgUrl}
+                onChange={(event) => setEpgUrl(event.target.value)}
+                placeholder="Leave blank to keep"
+                autoCapitalize="none"
+                disabled={clearEpg}
+              />
+            </label>
+            {playlist.hasEpg ? (
+              <label className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                <input
+                  type="checkbox"
+                  className="accent-rose-300"
+                  checked={clearEpg}
+                  onChange={(event) => setClearEpg(event.target.checked)}
+                />
+                Remove the current EPG URL
+              </label>
+            ) : null}
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[0.07] px-3.5 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary" disabled={busy}>
+              {busy ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>

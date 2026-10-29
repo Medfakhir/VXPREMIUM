@@ -37,6 +37,12 @@ export default function Home() {
               Platform online
             </span>
             <Link
+              href="/portal/login"
+              className="rounded-full border border-fuchsia-300/20 bg-fuchsia-300/[0.07] px-3.5 py-1.5 text-xs font-semibold text-fuchsia-100 transition hover:border-fuchsia-300/40 hover:text-white"
+            >
+              User portal
+            </Link>
+            <Link
               href="/activate"
               className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-300/50 hover:text-white"
             >
@@ -82,6 +88,12 @@ export default function Home() {
         <footer className="flex flex-col gap-2 border-t border-white/10 py-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
           <p>VX Premium</p>
           <div className="flex items-center gap-4">
+            <Link
+              href="/portal/login"
+              className="text-slate-300 transition hover:text-white"
+            >
+              User portal
+            </Link>
             <Link
               href="/downloads/VX-Premium-1.2.0-release.apk"
               className="text-slate-300 transition hover:text-white"

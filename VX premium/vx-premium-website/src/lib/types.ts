@@ -1,5 +1,6 @@
 export type UserStatus = "active" | "disabled";
 export type PlaylistType = "xtream" | "m3u";
+export type PlaylistStatus = "active" | "disabled";
 export type LineStatus = "active" | "disabled";
 
 export type AdminUser = {
@@ -23,6 +24,10 @@ export type PlaylistView = {
   userName: string;
   name: string;
   type: PlaylistType;
+  status: PlaylistStatus;
+  ownerLineId: string | null;
+  assignedLineIds: string[];
+  assignedLineNames: string[];
   serverUrl: string;
   username: string;
   endpointHost: string;
@@ -30,6 +35,13 @@ export type PlaylistView = {
   hasEpg: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type LinePlaylistView = {
+  id: string;
+  name: string;
+  type: PlaylistType;
+  status: PlaylistStatus;
 };
 
 export type LineView = {
@@ -40,6 +52,7 @@ export type LineView = {
   userName: string;
   playlistId: string;
   playlistName: string;
+  playlists: LinePlaylistView[];
   status: LineStatus;
   expiresAt: string;
   lastSeenAt: string | null;
@@ -55,6 +68,7 @@ export type PlayerPlaylist = {
   serverUrl: string;
   username: string;
   password: string;
+  m3uUrl: string | null;
   epgUrl: string | null;
 };
 
@@ -66,6 +80,44 @@ export type PlayerActivationResponse = {
     expiresAt: string;
   };
   playlist: PlayerPlaylist;
+  playlists: PlayerPlaylist[];
+};
+
+export type PortalLineView = {
+  id: string;
+  name: string;
+  mac: string;
+  status: LineStatus;
+  expiresAt: string;
+  userName: string;
+  allowOwnPlaylists: boolean;
+  lastSeenAt: string | null;
+  lastDeviceName: string;
+};
+
+export type PortalPlaylistView = {
+  id: string;
+  name: string;
+  type: PlaylistType;
+  status: PlaylistStatus;
+  endpointHost: string;
+  serverUrl: string;
+  username: string;
+  hasEpg: boolean;
+  owner: boolean;
+  primary: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PortalMeResponse = {
+  line: PortalLineView;
+  playlists: PortalPlaylistView[];
+};
+
+export type CaptchaChallenge = {
+  question: string;
+  token: string;
 };
 
 export type OverviewStats = {

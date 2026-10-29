@@ -7,6 +7,7 @@ import {
   readJsonIfExists,
   writeJson,
 } from "@/lib/json-store";
+import { deletePortalSessionsForLine } from "@/lib/portal-session-store";
 import type { AdminUser, UserStatus } from "@/lib/types";
 
 const USER_PREFIX = "users/";
@@ -160,7 +161,13 @@ async function deleteLinesForUser(userId: string) {
       line !== null && line.userId === userId,
   );
   await Promise.all(
-    owned.map((line) => deleteJson(`${LINE_PREFIX}${line.id}`)),
+    owned.map(async (line) => {
+      await Promise.all([
+        deleteJson(`${LINE_PREFIX}${line.id}`),
+        deleteJson(`${DEVICE_PREFIX}line-${line.id}`),
+        deletePortalSessionsForLine(line.id),
+      ]);
+    }),
   );
   return owned.length;
 }

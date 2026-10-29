@@ -34,7 +34,7 @@ const navigation = [
   },
   {
     href: "/admin/lines",
-    label: "Lines",
+    label: "Devices",
     icon: (
       <path d="M5 12h4l2-5 3 10 2-5h3M4 4h16v16H4z" />
     ),

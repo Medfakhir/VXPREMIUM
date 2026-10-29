@@ -21,6 +21,7 @@ export default function LinesPage() {
   const [playlists, setPlaylists] = useState<PlaylistView[]>([]);
   const [query, setQuery] = useState("");
   const [editorOpen, setEditorOpen] = useState(false);
+  const [editingLine, setEditingLine] = useState<LineView | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,7 +77,14 @@ export default function LinesPage() {
     const term = query.trim().toLowerCase();
     if (!term) return lines;
     return lines.filter((line) =>
-      [line.name, line.mac, line.userName, line.playlistName, line.lastDeviceName]
+      [
+        line.name,
+        line.mac,
+        line.userName,
+        line.playlistName,
+        ...line.playlists.map((playlist) => playlist.name),
+        line.lastDeviceName,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(term),
@@ -91,9 +99,7 @@ export default function LinesPage() {
       line.lastSeenAt &&
       now - new Date(line.lastSeenAt).getTime() <= 15 * 60 * 1000,
   );
-  const xtreamPlaylists = playlists.filter(
-    (playlist) => playlist.type === "xtream",
-  );
+  const availablePlaylists = playlists;
 
   async function toggleLine(line: LineView) {
     setBusyId(line.id);
@@ -115,6 +121,33 @@ export default function LinesPage() {
       setError(
         caught instanceof Error ? caught.message : "Could not update line",
       );
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function addTime(line: LineView) {
+    const raw = window.prompt(
+      `Add days to "${line.name}" (current expiry ${formatDate(line.expiresAt)})`,
+      "30",
+    );
+    if (raw === null) return;
+    const days = Number(raw.trim());
+    if (!Number.isInteger(days) || days < 1 || days > 3650) {
+      setError("Enter a whole number of days between 1 and 3650.");
+      return;
+    }
+    setBusyId(line.id);
+    setError("");
+    try {
+      await adminFetch(`/api/admin/lines/${line.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ addDays: days }),
+      });
+      setNotice(`Added ${days} days to "${line.name}".`);
+      await load();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not add time");
     } finally {
       setBusyId("");
     }
@@ -146,8 +179,8 @@ export default function LinesPage() {
             Lines
           </h1>
           <p className="mt-2 text-sm text-slate-400">
-            Pair the MAC address and DEVICE KEY shown on the player with an
-            Xtream playlist.
+            Device accounts pair the MAC address and DEVICE KEY shown on the
+            player with one or more Xtream or M3U playlists.
           </p>
           <Link
             href="/activate"
@@ -157,15 +190,23 @@ export default function LinesPage() {
           >
             Open user activation page
           </Link>
+          <Link
+            href="/portal/login"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 ml-4 inline-flex text-xs font-semibold text-cyan-300 transition hover:text-cyan-200"
+          >
+            Open user portal
+          </Link>
         </div>
         <button
           type="button"
           className="btn-primary"
           onClick={() => setEditorOpen(true)}
-          disabled={!users.length || !xtreamPlaylists.length}
+          disabled={!users.length}
         >
           <span className="text-base leading-none">+</span>
-          Add line
+          Add device
         </button>
       </div>
 
@@ -198,25 +239,14 @@ export default function LinesPage() {
         </div>
       ) : null}
 
-      {!users.length || !xtreamPlaylists.length ? (
+      {!users.length ? (
         <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-3 text-sm text-cyan-100/80">
-          {!users.length ? (
-            <>
-              Create a user first in{" "}
-              <Link href="/admin/users" className="font-semibold text-cyan-200">
-                Users
-              </Link>
-              .
-            </>
-          ) : (
-            <>
-              Add an Xtream playlist in{" "}
-              <Link href="/admin/playlists" className="font-semibold text-cyan-200">
-                Playlists
-              </Link>{" "}
-              before pairing a line.
-            </>
-          )}
+          Create a user first in{" "}
+          <Link href="/admin/users" className="font-semibold text-cyan-200">
+            Users
+          </Link>
+          . Device accounts can be created without a playlist and the user can
+          add one from the portal.
         </div>
       ) : null}
 
@@ -295,8 +325,30 @@ export default function LinesPage() {
                         </p>
                       </td>
                       <td className="px-5 py-4 text-slate-300">{line.userName}</td>
-                      <td className="px-5 py-4 text-slate-300">
-                        {line.playlistName}
+                      <td className="px-5 py-4">
+                        {line.playlists.length ? (
+                          <div className="flex max-w-[280px] flex-wrap gap-1.5">
+                            {line.playlists.map((playlist) => (
+                              <span
+                                key={playlist.id}
+                                className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                                  playlist.status === "active"
+                                    ? "border-cyan-300/15 bg-cyan-300/[0.06] text-cyan-200"
+                                    : "border-amber-300/20 bg-amber-300/[0.07] text-amber-200"
+                                }`}
+                              >
+                                {playlist.name}
+                                <span className="ml-1 opacity-60">
+                                  {playlist.type === "m3u" ? "M3U" : "XT"}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-500">
+                            No playlist yet
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <p className="text-slate-300">{formatDate(line.expiresAt)}</p>
@@ -317,6 +369,22 @@ export default function LinesPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06] disabled:opacity-40"
+                            onClick={() => setEditingLine(line)}
+                            disabled={busyId === line.id}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-300/10 disabled:opacity-40"
+                            onClick={() => void addTime(line)}
+                            disabled={busyId === line.id}
+                          >
+                            Add time
+                          </button>
                           <button
                             type="button"
                             className="rounded-lg border border-cyan-300/15 bg-cyan-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-cyan-200 transition hover:bg-cyan-300/10 disabled:opacity-40"
@@ -346,7 +414,7 @@ export default function LinesPage() {
                         ? "No lines match your search."
                         : "No device lines yet. Pair the first player using its MAC and DEVICE KEY."}
                     </p>
-                    {!lines.length && users.length && xtreamPlaylists.length ? (
+                    {!lines.length && users.length ? (
                       <button
                         type="button"
                         className="btn-primary mt-4"
@@ -366,10 +434,23 @@ export default function LinesPage() {
       {editorOpen ? (
         <LineEditorDialog
           users={users}
-          playlists={xtreamPlaylists}
+          playlists={availablePlaylists}
           onClose={() => setEditorOpen(false)}
           onSaved={async (message) => {
             setEditorOpen(false);
+            setNotice(message);
+            await load();
+          }}
+        />
+      ) : null}
+
+      {editingLine ? (
+        <LineEditDialog
+          line={editingLine}
+          playlists={availablePlaylists}
+          onClose={() => setEditingLine(null)}
+          onSaved={async (message) => {
+            setEditingLine(null);
             setNotice(message);
             await load();
           }}
@@ -444,9 +525,7 @@ function LineEditorDialog({
   onSaved: (message: string) => Promise<void>;
 }) {
   const [userId, setUserId] = useState(users[0]?.id ?? "");
-  const [playlistId, setPlaylistId] = useState(
-    playlists.find((playlist) => playlist.userId === users[0]?.id)?.id ?? "",
-  );
+  const [playlistIds, setPlaylistIds] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [mac, setMac] = useState("");
   const [deviceKey, setDeviceKey] = useState("");
@@ -471,10 +550,17 @@ function LineEditorDialog({
 
   function changeUser(nextId: string) {
     setUserId(nextId);
-    const first = playlists.find((playlist) => playlist.userId === nextId);
-    setPlaylistId(first?.id ?? "");
+    setPlaylistIds([]);
     const user = users.find((item) => item.id === nextId);
     if (user) setExpiresAt(user.expiresAt.slice(0, 10));
+  }
+
+  function togglePlaylist(id: string) {
+    setPlaylistIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -489,7 +575,7 @@ function LineEditorDialog({
           mac,
           deviceKey,
           userId,
-          playlistId,
+          playlistIds,
           status: "active",
           expiresAt,
         }),
@@ -557,25 +643,44 @@ function LineEditorDialog({
                 ))}
               </select>
             </label>
-            <label className="block sm:col-span-2">
-              <span className="admin-label">Xtream playlist</span>
-              <select
-                className="admin-input"
-                value={playlistId}
-                onChange={(event) => setPlaylistId(event.target.value)}
-                required
-              >
-                {userPlaylists.length ? (
-                  userPlaylists.map((playlist) => (
-                    <option key={playlist.id} value={playlist.id}>
-                      {playlist.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">No Xtream playlist for this user</option>
-                )}
-              </select>
-            </label>
+            <div className="block sm:col-span-2">
+              <span className="admin-label">Playlists</span>
+              {userPlaylists.length ? (
+                <div className="mt-2 grid gap-2 rounded-xl border border-white/10 bg-white/[0.025] p-3 sm:grid-cols-2">
+                  {userPlaylists.map((playlist) => (
+                    <label
+                      key={playlist.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-300 hover:bg-white/[0.03]"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 accent-cyan-300"
+                        checked={playlistIds.includes(playlist.id)}
+                        onChange={() => togglePlaylist(playlist.id)}
+                      />
+                      <span>
+                        <span className="block font-semibold text-white">
+                          {playlist.name}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          {playlist.type === "xtream" ? "Xtream" : "M3U"}
+                          {playlist.status === "disabled" ? " / disabled" : ""}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-3 text-xs text-slate-500">
+                  No playlists for this user yet. You can create the device now
+                  and add playlists later from the user portal.
+                </p>
+              )}
+              <p className="mt-2 text-xs text-slate-500">
+                Select one or more sources. The first selected source is the
+                primary playlist for older player builds.
+              </p>
+            </div>
             <label className="block sm:col-span-2">
               <span className="admin-label">Line name (optional)</span>
               <input
@@ -645,9 +750,198 @@ function LineEditorDialog({
             <button
               type="submit"
               className="btn-primary"
-              disabled={busy || !playlistId}
+              disabled={busy}
             >
               {busy ? "Pairing..." : "Pair device"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function LineEditDialog({
+  line,
+  playlists,
+  onClose,
+  onSaved,
+}: {
+  line: LineView;
+  playlists: PlaylistView[];
+  onClose: () => void;
+  onSaved: (message: string) => Promise<void>;
+}) {
+  const userPlaylists = playlists.filter(
+    (playlist) => playlist.userId === line.userId,
+  );
+  const [name, setName] = useState(line.name);
+  const [status, setStatus] = useState<LineStatus>(line.status);
+  const [expiresAt, setExpiresAt] = useState(line.expiresAt.slice(0, 10));
+  const [playlistIds, setPlaylistIds] = useState<string[]>(
+    line.playlists.map((playlist) => playlist.id),
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  function togglePlaylist(id: string) {
+    setPlaylistIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      await adminFetch(`/api/admin/lines/${line.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name,
+          status,
+          expiresAt,
+          playlistIds,
+        }),
+      });
+      await onSaved(`"${name}" was updated.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not update device");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        aria-label="Close dialog"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="line-edit-dialog-title"
+        className="admin-scrollbar relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-t-2xl border border-white/10 bg-[#0a0f19] p-6 shadow-2xl sm:rounded-2xl sm:p-7"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-300">
+              Device account
+            </p>
+            <h2 id="line-edit-dialog-title" className="mt-2 text-2xl font-bold tracking-tight">
+              Edit {line.name}
+            </h2>
+            <p className="mt-1 font-mono text-xs tracking-wider text-cyan-200">
+              {line.mac}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-slate-400 hover:text-white"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <form className="mt-6" onSubmit={submit}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block sm:col-span-2">
+              <span className="admin-label">Device name</span>
+              <input
+                className="admin-input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                maxLength={80}
+                required
+              />
+            </label>
+            <label className="block">
+              <span className="admin-label">Status</span>
+              <select
+                className="admin-input"
+                value={status}
+                onChange={(event) => setStatus(event.target.value as LineStatus)}
+              >
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="admin-label">Access expiry</span>
+              <input
+                className="admin-input"
+                type="date"
+                value={expiresAt}
+                onChange={(event) => setExpiresAt(event.target.value)}
+                required
+              />
+            </label>
+            <div className="block sm:col-span-2">
+              <span className="admin-label">Assigned playlists</span>
+              {userPlaylists.length ? (
+                <div className="mt-2 grid gap-2 rounded-xl border border-white/10 bg-white/[0.025] p-3 sm:grid-cols-2">
+                  {userPlaylists.map((playlist) => (
+                    <label
+                      key={playlist.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-300 hover:bg-white/[0.03]"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 accent-cyan-300"
+                        checked={playlistIds.includes(playlist.id)}
+                        onChange={() => togglePlaylist(playlist.id)}
+                      />
+                      <span>
+                        <span className="block font-semibold text-white">
+                          {playlist.name}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                          {playlist.type === "xtream" ? "Xtream" : "M3U"}
+                          {playlist.status === "disabled" ? " / disabled" : ""}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 rounded-xl border border-white/10 bg-white/[0.025] px-3 py-3 text-xs text-slate-500">
+                  No playlists for this user yet.
+                </p>
+              )}
+              <p className="mt-2 text-xs text-slate-500">
+                Clear all sources to keep the device account without an active
+                playlist.
+              </p>
+            </div>
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[0.07] px-3.5 py-3 text-sm text-rose-200">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-6 flex flex-col-reverse gap-2 border-t border-white/10 pt-5 sm:flex-row sm:justify-end">
+            <button type="button" className="btn-secondary" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="btn-primary" disabled={busy}>
+              {busy ? "Saving..." : "Save changes"}
             </button>
           </div>
         </form>

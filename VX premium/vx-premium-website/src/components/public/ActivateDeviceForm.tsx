@@ -17,8 +17,10 @@ type ActivationResponse = {
     serverUrl: string;
     username: string;
     password: string;
+    m3uUrl: string | null;
     epgUrl: string | null;
   };
+  playlists: ActivationResponse["playlist"][];
 };
 
 export default function ActivateDeviceForm() {
@@ -93,86 +95,111 @@ export default function ActivateDeviceForm() {
           <div>
             <h2 className="text-lg font-bold text-white">Device activated</h2>
             <p className="mt-1 text-sm leading-6 text-emerald-100/80">
-              The playlist assigned to this MAC address is ready. Open the player
-              and tap <strong>Check activation</strong>.
+              {result.playlists.length > 1
+                ? `${result.playlists.length} playlists are ready for this device.`
+                : "The playlist assigned to this MAC address is ready."}{" "}
+              Open the player and tap <strong>Check activation</strong>.
             </p>
           </div>
         </div>
 
         <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
           <Detail label="Device" value={result.line.name} />
-          <Detail label="Playlist" value={result.playlist.name} />
+          <Detail
+            label="Playlists"
+            value={result.playlists.map((playlist) => playlist.name).join(", ")}
+          />
           <Detail label="Access expires" value={formatDate(result.line.expiresAt)} />
           <Detail label="MAC address" value={mac.trim().toUpperCase()} />
         </dl>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
-                Manual IPTV setup
-              </p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">
-                Optional. Use these details only if you are adding the Xtream
-                account to another IPTV app.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <CopyRow
-              label="Server URL"
-              value={result.playlist.serverUrl}
-              copied={copied === "server"}
-              onCopy={() => copyValue("server", result.playlist.serverUrl)}
-            />
-            <CopyRow
-              label="Username"
-              value={result.playlist.username}
-              copied={copied === "username"}
-              onCopy={() => copyValue("username", result.playlist.username)}
-            />
-            <div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
-                  Password
-                </span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-slate-300 hover:text-white"
-                    onClick={() => setShowPassword((value) => !value)}
-                  >
-                    {showPassword ? "Hide" : "Show"}
-                  </button>
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-cyan-300 hover:text-cyan-200"
-                    onClick={() => copyValue("password", result.playlist.password)}
-                  >
-                    {copied === "password" ? "Copied" : "Copy"}
-                  </button>
-                </div>
+        {result.playlist.type === "xtream" ? (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
+                  Manual IPTV setup
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Optional. Use these details only if you are adding the Xtream
+                  account to another IPTV app.
+                </p>
               </div>
-              <p className="mt-1 break-all rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-sm text-slate-200">
-                {showPassword ? result.playlist.password : "••••••••••••"}
-              </p>
             </div>
-            {result.playlist.epgUrl ? (
-              <CopyRow
-                label="EPG URL"
-                value={result.playlist.epgUrl}
-                copied={copied === "epg"}
-                onCopy={() => copyValue("epg", result.playlist.epgUrl ?? "")}
-              />
-            ) : null}
-          </div>
 
-          <p className="mt-4 text-xs leading-5 text-amber-200/80">
-            Keep these details private. Anyone with this MAC address and device
-            key can view the assigned playlist.
-          </p>
-        </div>
+            <div className="mt-4 space-y-3">
+              <CopyRow
+                label="Server URL"
+                value={result.playlist.serverUrl}
+                copied={copied === "server"}
+                onCopy={() => copyValue("server", result.playlist.serverUrl)}
+              />
+              <CopyRow
+                label="Username"
+                value={result.playlist.username}
+                copied={copied === "username"}
+                onCopy={() => copyValue("username", result.playlist.username)}
+              />
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                    Password
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-slate-300 hover:text-white"
+                      onClick={() => setShowPassword((value) => !value)}
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-cyan-300 hover:text-cyan-200"
+                      onClick={() => copyValue("password", result.playlist.password)}
+                    >
+                      {copied === "password" ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-1 break-all rounded-xl border border-white/10 bg-black/20 px-3 py-2 font-mono text-sm text-slate-200">
+                  {showPassword ? result.playlist.password : "••••••••••••"}
+                </p>
+              </div>
+              {result.playlist.epgUrl ? (
+                <CopyRow
+                  label="EPG URL"
+                  value={result.playlist.epgUrl}
+                  copied={copied === "epg"}
+                  onCopy={() => copyValue("epg", result.playlist.epgUrl ?? "")}
+                />
+              ) : null}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-amber-200/80">
+              Keep these details private. Anyone with this MAC address and device
+              key can view the assigned playlists.
+            </p>
+          </div>
+        ) : result.playlist.m3uUrl ? (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-300">
+              M3U source
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              This device uses an M3U playlist. The player loads it automatically
+              after activation.
+            </p>
+            <div className="mt-3">
+              <CopyRow
+                label="M3U URL"
+                value={result.playlist.m3uUrl}
+                copied={copied === "m3u"}
+                onCopy={() => copyValue("m3u", result.playlist.m3uUrl ?? "")}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[0.07] p-3 text-sm text-rose-200">
@@ -202,7 +229,7 @@ export default function ActivateDeviceForm() {
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Enter the MAC address and DEVICE KEY shown on your TV. This activates
-          the playlist already assigned by your provider.
+          the playlists already assigned by your provider.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import {
   listLineViews,
   toLineView,
 } from "@/lib/lines";
-import { getPlaylist } from "@/lib/playlists";
+import { listPlaylists } from "@/lib/playlists";
 import { createLineSchema } from "@/lib/schemas";
 import { getUser } from "@/lib/users";
 
@@ -22,9 +22,9 @@ export async function POST(request: Request) {
   return withAdmin(request, async ({ admin }) => {
     const input = createLineSchema.parse(await jsonBody(request));
     const line = await createLine(input);
-    const [user, playlist] = await Promise.all([
+    const [user, playlists] = await Promise.all([
       getUser(line.userId),
-      getPlaylist(line.playlistId),
+      listPlaylists(),
     ]);
     await writeAudit(admin.id, "line.create", "line", line.id, {
       mac: line.mac,
@@ -33,10 +33,10 @@ export async function POST(request: Request) {
     });
     return json(
       {
-        line: await toLineView(
+        line: toLineView(
           line,
           user?.name ?? "Unknown user",
-          playlist?.name ?? "Missing playlist",
+          playlists,
         ),
       },
       201,

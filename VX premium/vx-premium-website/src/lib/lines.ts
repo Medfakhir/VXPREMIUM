@@ -13,7 +13,14 @@ import {
   writeJson,
 } from "@/lib/json-store";
 import { getPlaylist, listPlaylists } from "@/lib/playlists";
-import type { LineStatus, LineView, PlayerActivationResponse } from "@/lib/types";
+import type { PlaylistRecord } from "@/lib/playlists";
+import { deletePortalSessionsForLine } from "@/lib/portal-session-store";
+import type {
+  LineStatus,
+  LineView,
+  PlayerActivationResponse,
+  PlayerPlaylist,
+} from "@/lib/types";
 import { getUser, isExpired, listUsers } from "@/lib/users";
 import type { DeviceRecord } from "@/lib/users";
 
@@ -27,6 +34,7 @@ export type LineRecord = {
   deviceKeyHash: string;
   userId: string;
   playlistId: string;
+  playlistIds?: string[];
   status: LineStatus;
   expiresAt: string;
   lastSeenAt: string;
@@ -42,6 +50,7 @@ export type CreateLineInput = {
   deviceKey: string;
   userId: string;
   playlistId: string;
+  playlistIds?: string[];
   status: LineStatus;
   expiresAt: string;
 };
@@ -49,9 +58,19 @@ export type CreateLineInput = {
 export type UpdateLineInput = {
   name?: string;
   playlistId?: string;
+  playlistIds?: string[];
   status?: LineStatus;
   expiresAt?: string;
+  addDays?: number;
 };
+
+export function linePlaylistIds(
+  line: Pick<LineRecord, "playlistId" | "playlistIds">,
+) {
+  return Array.from(
+    new Set([line.playlistId, ...(line.playlistIds ?? [])].filter(Boolean)),
+  );
+}
 
 export function normalizeMac(value: string) {
   const compact = value
@@ -98,7 +117,7 @@ export async function getLine(id: string) {
   return readJsonIfExists<LineRecord>(`${LINE_PREFIX}${id}`);
 }
 
-async function findLineByMac(mac: string) {
+export async function findLineByMac(mac: string) {
   const normalized = normalizeMac(mac);
   const lines = await listLines();
   return lines.find((line) => line.mac === normalized) ?? null;
@@ -122,13 +141,15 @@ async function assertPlaylistForUser(playlistId: string, userId: string) {
   if (playlist.userId !== userId) {
     throw new ApiError("That playlist does not belong to this user", 422);
   }
-  if (playlist.type !== "xtream") {
-    throw new ApiError(
-      "Only Xtream playlists can be activated by this player",
-      422,
-    );
-  }
   return playlist;
+}
+
+async function assertPlaylistsForUser(playlistIds: string[], userId: string) {
+  const unique = Array.from(new Set(playlistIds.filter(Boolean)));
+  await Promise.all(
+    unique.map((playlistId) => assertPlaylistForUser(playlistId, userId)),
+  );
+  return unique;
 }
 
 async function assertConnectionSlot(userId: string) {
@@ -155,20 +176,27 @@ async function assertConnectionSlot(userId: string) {
 export async function createLine(input: CreateLineInput) {
   const mac = normalizeMac(input.mac);
   normalizeDeviceKey(input.deviceKey);
-  const playlist = await assertPlaylistForUser(input.playlistId, input.userId);
+  const playlistIds = await assertPlaylistsForUser(
+    [input.playlistId, ...(input.playlistIds ?? [])],
+    input.userId,
+  );
   await assertMacAvailable(mac);
   const user = await assertConnectionSlot(input.userId);
+  const primaryPlaylist = playlistIds.length
+    ? await getPlaylist(playlistIds[0])
+    : null;
 
   const now = new Date().toISOString();
   const line: LineRecord = {
     id: randomUUID(),
     name:
       input.name.trim() ||
-      `${user.name} - ${playlist.name}`,
+      `${user.name} - ${primaryPlaylist?.name ?? "Device"}`,
     mac,
     deviceKeyHash: deviceKeyFingerprint(input.deviceKey),
     userId: user.id,
-    playlistId: playlist.id,
+    playlistId: playlistIds[0] ?? "",
+    playlistIds,
     status: input.status,
     expiresAt: input.expiresAt.trim()
       ? normalizeExpiry(input.expiresAt)
@@ -190,14 +218,57 @@ export async function updateLine(id: string, patch: UpdateLineInput) {
   }
 
   if (patch.name !== undefined) line.name = patch.name.trim() || line.name;
-  if (patch.playlistId !== undefined) {
-    const playlist = await assertPlaylistForUser(patch.playlistId, line.userId);
-    line.playlistId = playlist.id;
+  if (patch.playlistIds !== undefined || patch.playlistId !== undefined) {
+    const requested =
+      patch.playlistIds !== undefined
+        ? patch.playlistIds
+        : [patch.playlistId ?? ""];
+    const playlistIds = await assertPlaylistsForUser(requested, line.userId);
+    line.playlistIds = playlistIds;
+    line.playlistId = playlistIds[0] ?? "";
   }
   if (patch.status !== undefined) line.status = patch.status;
   if (patch.expiresAt !== undefined && patch.expiresAt.trim()) {
     line.expiresAt = normalizeExpiry(patch.expiresAt);
   }
+  if (patch.addDays !== undefined) {
+    const current = new Date(line.expiresAt).getTime();
+    const base = Math.max(current, Date.now());
+    line.expiresAt = new Date(base + patch.addDays * 86_400_000).toISOString();
+  }
+  line.updatedAt = new Date().toISOString();
+  await writeJson(`${LINE_PREFIX}${line.id}`, line);
+  return line;
+}
+
+export async function addPlaylistToLine(lineId: string, playlistId: string) {
+  const line = await getLine(lineId);
+  if (!line) {
+    throw new ApiError("Line not found", 404);
+  }
+  await assertPlaylistForUser(playlistId, line.userId);
+  const playlistIds = linePlaylistIds(line);
+  if (!playlistIds.includes(playlistId)) {
+    playlistIds.push(playlistId);
+  }
+  line.playlistIds = playlistIds;
+  if (!line.playlistId) line.playlistId = playlistIds[0] ?? "";
+  line.updatedAt = new Date().toISOString();
+  await writeJson(`${LINE_PREFIX}${line.id}`, line);
+  return line;
+}
+
+export async function removePlaylistFromLine(
+  lineId: string,
+  playlistId: string,
+) {
+  const line = await getLine(lineId);
+  if (!line) {
+    throw new ApiError("Line not found", 404);
+  }
+  const playlistIds = linePlaylistIds(line).filter((id) => id !== playlistId);
+  line.playlistIds = playlistIds;
+  line.playlistId = playlistIds[0] ?? "";
   line.updatedAt = new Date().toISOString();
   await writeJson(`${LINE_PREFIX}${line.id}`, line);
   return line;
@@ -208,26 +279,40 @@ export async function deleteLine(id: string) {
   if (!line) {
     throw new ApiError("Line not found", 404);
   }
+  const playlists = await listPlaylists();
+  const owned = playlists.filter((playlist) => playlist.ownerLineId === line.id);
   await Promise.all([
     deleteJson(`${LINE_PREFIX}${line.id}`),
     deleteJson(`${DEVICE_PREFIX}line-${line.id}`),
+    deletePortalSessionsForLine(line.id),
+    ...owned.map((playlist) => deleteJson(`playlists/${playlist.id}`)),
   ]);
   return line;
 }
 
-export async function toLineView(
+export function toLineView(
   line: LineRecord,
   userName: string,
-  playlistName: string,
-): Promise<LineView> {
+  allPlaylists: PlaylistRecord[],
+): LineView {
+  const playlists = linePlaylistIds(line)
+    .map((id) => allPlaylists.find((playlist) => playlist.id === id))
+    .filter((playlist): playlist is PlaylistRecord => Boolean(playlist))
+    .map((playlist) => ({
+      id: playlist.id,
+      name: playlist.name,
+      type: playlist.type,
+      status: playlist.status ?? "active",
+    }));
   return {
     id: line.id,
     name: line.name,
     mac: line.mac,
     userId: line.userId,
     userName,
-    playlistId: line.playlistId,
-    playlistName,
+    playlistId: playlists[0]?.id ?? "",
+    playlistName: playlists[0]?.name ?? "No playlist",
+    playlists,
     status: line.status,
     expiresAt: line.expiresAt,
     lastSeenAt: line.lastSeenAt || null,
@@ -244,16 +329,11 @@ export async function listLineViews() {
     listPlaylists(),
   ]);
   const userNames = new Map(users.map((user) => [user.id, user.name]));
-  const playlistNames = new Map(
-    playlists.map((playlist) => [playlist.id, playlist.name]),
-  );
-  return Promise.all(
-    lines.map((line) =>
-      toLineView(
-        line,
-        userNames.get(line.userId) ?? "Unknown user",
-        playlistNames.get(line.playlistId) ?? "Missing playlist",
-      ),
+  return lines.map((line) =>
+    toLineView(
+      line,
+      userNames.get(line.userId) ?? "Unknown user",
+      playlists,
     ),
   );
 }
@@ -296,32 +376,59 @@ export async function activateLine(input: {
     throw new ApiError("This line has expired", 403);
   }
 
-  const [user, playlist] = await Promise.all([
+  const [user, allPlaylists] = await Promise.all([
     getUser(line.userId),
-    getPlaylist(line.playlistId),
+    listPlaylists(),
   ]);
   if (!user || user.status !== "active" || isExpired(user)) {
     throw new ApiError("This user account is inactive", 403);
   }
-  if (!playlist) {
-    throw new ApiError("The playlist for this line is missing", 404);
-  }
-  if (playlist.type !== "xtream") {
+
+  const assigned = linePlaylistIds(line)
+    .map((id) => allPlaylists.find((playlist) => playlist.id === id))
+    .filter(
+      (playlist): playlist is PlaylistRecord =>
+        Boolean(playlist) && (playlist?.status ?? "active") === "active",
+    );
+  if (!assigned.length) {
     throw new ApiError(
-      "This player currently supports Xtream lines only",
-      409,
+      "No active playlist is assigned to this device",
+      404,
     );
   }
 
-  const password = decryptSecret(playlist.secret);
-  let epgUrl: string | null = null;
-  if (playlist.epgSecret) {
-    try {
-      epgUrl = decryptSecret(playlist.epgSecret);
-    } catch {
-      epgUrl = null;
+  const playlists: PlayerPlaylist[] = assigned.map((playlist) => {
+    let epgUrl: string | null = null;
+    if (playlist.epgSecret) {
+      try {
+        epgUrl = decryptSecret(playlist.epgSecret);
+      } catch {
+        epgUrl = null;
+      }
     }
-  }
+    if (playlist.type === "m3u") {
+      return {
+        id: playlist.id,
+        name: playlist.name,
+        type: playlist.type,
+        serverUrl: "",
+        username: "",
+        password: "",
+        m3uUrl: decryptSecret(playlist.secret),
+        epgUrl,
+      };
+    }
+    return {
+      id: playlist.id,
+      name: playlist.name,
+      type: playlist.type,
+      serverUrl: playlist.serverUrl,
+      username: playlist.username,
+      password: decryptSecret(playlist.secret),
+      m3uUrl: null,
+      epgUrl,
+    };
+  });
 
   const now = new Date().toISOString();
   const deviceName = input.deviceName?.trim() || "Unknown device";
@@ -341,14 +448,7 @@ export async function activateLine(input: {
       status: line.status,
       expiresAt: line.expiresAt,
     },
-    playlist: {
-      id: playlist.id,
-      name: playlist.name,
-      type: playlist.type,
-      serverUrl: playlist.serverUrl,
-      username: playlist.username,
-      password,
-      epgUrl,
-    },
+    playlist: playlists[0],
+    playlists,
   };
 }

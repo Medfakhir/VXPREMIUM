@@ -1,7 +1,7 @@
 import { json, jsonBody, withAdmin } from "@/lib/api";
 import { writeAudit } from "@/lib/auth";
 import { deleteLine, toLineView, updateLine } from "@/lib/lines";
-import { getPlaylist } from "@/lib/playlists";
+import { listPlaylists } from "@/lib/playlists";
 import { updateLineSchema } from "@/lib/schemas";
 import { getUser } from "@/lib/users";
 
@@ -15,9 +15,9 @@ export async function PATCH(request: Request, context: Context) {
     const { id } = await context.params;
     const patch = updateLineSchema.parse(await jsonBody(request));
     const line = await updateLine(id, patch);
-    const [user, playlist] = await Promise.all([
+    const [user, playlists] = await Promise.all([
       getUser(line.userId),
-      getPlaylist(line.playlistId),
+      listPlaylists(),
     ]);
     await writeAudit(admin.id, "line.update", "line", id, {
       status: line.status,
@@ -25,10 +25,10 @@ export async function PATCH(request: Request, context: Context) {
       playlistId: line.playlistId,
     });
     return json({
-      line: await toLineView(
+      line: toLineView(
         line,
         user?.name ?? "Unknown user",
-        playlist?.name ?? "Missing playlist",
+        playlists,
       ),
     });
   });
