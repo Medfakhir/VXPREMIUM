@@ -112,8 +112,8 @@ export async function updatePortalPlaylist(
   }
   const playlist = await getPlaylist(playlistId);
   if (!playlist) throw new ApiError("Playlist not found", 404);
-  if (playlist.ownerLineId !== line.id) {
-    throw new ApiError("This playlist is managed by your provider", 403);
+  if (!linePlaylistIds(line).includes(playlistId)) {
+    throw new ApiError("This playlist is not assigned to your device", 403);
   }
   return updatePlaylist(playlistId, patch);
 }

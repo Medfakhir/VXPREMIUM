@@ -10,8 +10,8 @@ const features = [
     text: "Import playlist and guide URLs without extra configuration.",
   },
   {
-    label: "Remote admin",
-    text: "Manage activations, subscriptions, devices, and playlists.",
+    label: "Provider managed",
+    text: "Your provider manages activations, subscriptions, devices, and playlists.",
   },
 ];
 
@@ -48,12 +48,6 @@ export default function Home() {
             >
               Activate device
             </Link>
-            <Link
-              href="/admin"
-              className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:text-white"
-            >
-              Admin
-            </Link>
           </div>
         </header>
 
@@ -69,7 +63,7 @@ export default function Home() {
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
             A clean foundation for playlist access, activation, subscriptions, and
-            remote user control from a single admin dashboard.
+            remote user control from a single control center.
           </p>
 
           <div className="mt-12 grid gap-3 sm:grid-cols-3">

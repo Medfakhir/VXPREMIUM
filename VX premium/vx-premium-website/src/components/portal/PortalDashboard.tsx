@@ -451,7 +451,7 @@ function PlaylistCard({
       </div>
 
       <div className="mt-4 flex items-center justify-end gap-2">
-        {playlist.owner && canManage ? (
+        {canManage ? (
           <>
             <button
               type="button"
@@ -461,14 +461,16 @@ function PlaylistCard({
             >
               Edit
             </button>
-            <button
-              type="button"
-              className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-300/10 disabled:opacity-40"
-              onClick={onDelete}
-              disabled={busy}
-            >
-              Delete
-            </button>
+            {playlist.owner ? (
+              <button
+                type="button"
+                className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-300/10 disabled:opacity-40"
+                onClick={onDelete}
+                disabled={busy}
+              >
+                Delete
+              </button>
+            ) : null}
           </>
         ) : (
           <span className="text-[10px] uppercase tracking-[0.1em] text-slate-600">
