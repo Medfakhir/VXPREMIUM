@@ -231,5 +231,5 @@ export const portalLoginSchema = z.object({
   mac: z.string().trim().min(1, "MAC address is required").max(32),
   deviceKey: z.string().trim().regex(/^\d{6}$/, "Device key must be 6 digits"),
   captchaToken: z.string().trim().min(1, "Captcha is required").max(2000),
-  captchaAnswer: z.string().trim().min(1, "Type both words").max(120),
+  captchaAnswer: z.string().trim().min(1, "Type the characters shown").max(120),
 });

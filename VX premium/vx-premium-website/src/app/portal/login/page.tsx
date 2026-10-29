@@ -21,7 +21,7 @@ const steps = [
   {
     number: "02",
     title: "Sign in here",
-    text: "Enter both codes and the two words shown in the human check.",
+    text: "Enter both codes and the characters shown in the human check.",
   },
   {
     number: "03",

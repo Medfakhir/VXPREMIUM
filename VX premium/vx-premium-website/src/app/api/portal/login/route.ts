@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      if (!verifyCaptcha(input.captchaToken, input.captchaAnswer)) {
+      if (!(await verifyCaptcha(input.captchaToken, input.captchaAnswer))) {
         throw new ApiError("Captcha answer is incorrect", 403);
       }
       const { line, user } = await authenticatePortalLine(

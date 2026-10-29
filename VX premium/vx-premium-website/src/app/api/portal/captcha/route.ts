@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    return json(createCaptchaChallenge());
+    return json(await createCaptchaChallenge());
   } catch (error) {
     return errorResponse(error);
   }

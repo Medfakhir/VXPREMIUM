@@ -116,8 +116,9 @@ export type PortalMeResponse = {
 };
 
 export type CaptchaChallenge = {
-  question: string;
+  image: string;
   token: string;
+  debugAnswer?: string;
 };
 
 export type OverviewStats = {

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
@@ -163,27 +164,35 @@ export default function PortalLoginForm() {
               onClick={() => void loadCaptcha()}
               disabled={loadingCaptcha || busy}
             >
-              {loadingCaptcha ? "Loading..." : "New words"}
+              {loadingCaptcha ? "Loading..." : "New image"}
             </button>
           </div>
-          <div className="mt-1 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-4 text-center">
-            <p className="font-mono text-lg font-bold tracking-[0.18em] text-cyan-100">
-              {challenge?.question ?? "Loading captcha..."}
-            </p>
+          <div className="mt-1 grid min-h-[88px] place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-2">
+            {challenge ? (
+              <Image
+                src={challenge.image}
+                alt="Captcha challenge"
+                width={260}
+                height={72}
+                unoptimized
+                className="h-[72px] w-auto rounded-lg"
+              />
+            ) : (
+              <p className="text-sm text-slate-500">Loading captcha...</p>
+            )}
           </div>
           <input
             id="portal-captcha"
-            className="admin-input mt-2"
+            className="admin-input mt-2 font-mono uppercase tracking-[0.2em]"
             value={answer}
             onChange={(event) => setAnswer(event.target.value)}
-            placeholder="Type both words in order"
+            placeholder="Type the characters shown"
             autoComplete="off"
             spellCheck={false}
             required
           />
           <p className="mt-2 text-xs text-slate-500">
-            Type the two words separated by a space. This simple check helps
-            reduce automated login attempts.
+            Type the characters in the image. Case does not matter.
           </p>
         </div>
 

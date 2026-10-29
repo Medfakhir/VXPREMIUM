@@ -94,7 +94,6 @@ export default function Home() {
             >
               Download Android APK
             </Link>
-            <p>Netlify deployment / JSON storage online</p>
           </div>
         </footer>
       </div>
