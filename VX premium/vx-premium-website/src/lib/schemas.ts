@@ -273,4 +273,9 @@ export const playerConfigSchema = z.object({
   test_username: z.string().trim().max(200).default(""),
   test_password: z.string().trim().max(200).default(""),
   test_server_url: optionalHttpUrl.default(""),
+  update_apk_url: optionalHttpUrl.default(""),
+  update_version_code: z.coerce.number().int().min(0).max(999999).default(0),
+  update_version_name: z.string().trim().max(40).default(""),
+  update_notes: z.string().trim().max(600).default(""),
+  force_update: z.boolean().default(false),
 });

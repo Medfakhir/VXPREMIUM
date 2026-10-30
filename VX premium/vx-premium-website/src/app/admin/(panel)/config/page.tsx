@@ -336,6 +336,61 @@ export default function PlayerConfigPage() {
             </label>
           </Section>
 
+          <Section
+            title="App updates"
+            hint="Advertise a newer player build. Devices compare the version code below with their own and offer the update in Settings. Leave the URL empty to disable."
+          >
+            <label className="block">
+              <span className="admin-label">Latest version code</span>
+              <input
+                className="admin-input"
+                type="number"
+                min={0}
+                value={config.update_version_code}
+                onChange={(event) =>
+                  patch("update_version_code", Number(event.target.value) || 0)
+                }
+              />
+            </label>
+            <label className="block">
+              <span className="admin-label">Latest version name</span>
+              <input
+                className="admin-input"
+                value={config.update_version_name}
+                onChange={(event) =>
+                  patch("update_version_name", event.target.value)
+                }
+                placeholder="1.2.1"
+                maxLength={40}
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="admin-label">APK download URL</span>
+              <input
+                className="admin-input font-mono text-xs"
+                value={config.update_apk_url}
+                onChange={(event) => patch("update_apk_url", event.target.value)}
+                placeholder="https://vxpremium.com/downloads/VX-Premium-1.2.0-release.apk"
+                spellCheck={false}
+              />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className="admin-label">What&apos;s new (optional)</span>
+              <textarea
+                className="admin-input"
+                rows={2}
+                value={config.update_notes}
+                onChange={(event) => patch("update_notes", event.target.value)}
+                maxLength={600}
+              />
+            </label>
+            <Toggle
+              label="Force update (users cannot skip)"
+              checked={config.force_update}
+              onChange={(value) => patch("force_update", value)}
+            />
+          </Section>
+
           <div className="admin-card sticky bottom-4 flex flex-col-reverse items-center gap-3 px-5 py-4 sm:flex-row sm:justify-end">
             <p className="mr-auto max-w-md text-xs text-slate-500">
               Devices fetch this at startup. Nothing here is pushed to a running

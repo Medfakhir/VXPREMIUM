@@ -154,6 +154,11 @@ export type PlayerConfig = {
   test_username: string;
   test_password: string;
   test_server_url: string;
+  update_apk_url: string;
+  update_version_code: number;
+  update_version_name: string;
+  update_notes: string;
+  force_update: boolean;
 };
 
 export type AdminSessionView = {
