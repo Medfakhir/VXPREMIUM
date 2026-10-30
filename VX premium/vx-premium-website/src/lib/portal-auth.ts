@@ -1,16 +1,7 @@
 import { cookies } from "next/headers";
 import { ApiError, errorResponse } from "@/lib/api";
-import {
-  deviceKeyFingerprint,
-  hashToken,
-  safeEqual,
-} from "@/lib/crypto";
-import {
-  findLineByMac,
-  getLine,
-  normalizeDeviceKey,
-  normalizeMac,
-} from "@/lib/lines";
+import { hashToken } from "@/lib/crypto";
+import { getLine, resolveDeviceLine } from "@/lib/lines";
 import type { LineRecord } from "@/lib/lines";
 import {
   createPortalSessionRecord,
@@ -53,25 +44,7 @@ export function toPortalLineView(
 }
 
 export async function authenticatePortalLine(mac: string, deviceKey: string) {
-  const normalizedMac = normalizeMac(mac);
-  const normalizedKey = normalizeDeviceKey(deviceKey);
-  const line = await findLineByMac(normalizedMac);
-  if (!line) {
-    throw new ApiError("This device is not activated yet", 404);
-  }
-  if (!safeEqual(deviceKeyFingerprint(normalizedKey), line.deviceKeyHash)) {
-    throw new ApiError("Device key does not match this line", 403);
-  }
-  if (line.status !== "active") {
-    throw new ApiError("This device is disabled", 403);
-  }
-  if (isLineExpired(line)) {
-    throw new ApiError("This device has expired", 403);
-  }
-  const user = await getUser(line.userId);
-  if (!user || user.status !== "active" || isExpired(user)) {
-    throw new ApiError("This user account is inactive", 403);
-  }
+  const { line, user } = await resolveDeviceLine({ mac, deviceKey });
   return { line, user };
 }
 

@@ -10,8 +10,8 @@ const features = [
     text: "Import playlist and guide URLs without extra configuration.",
   },
   {
-    label: "Provider managed",
-    text: "Your provider manages activations, subscriptions, devices, and playlists.",
+    label: "Self-service",
+    text: "Devices register with their MAC address, then add Xtream or M3U playlists themselves.",
   },
 ];
 

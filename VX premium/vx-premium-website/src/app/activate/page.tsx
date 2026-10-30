@@ -26,7 +26,7 @@ const steps = [
   {
     number: "03",
     title: "Start watching",
-    text: "The playlist assigned by your provider is activated for this device.",
+    text: "The playlists you added in the portal are activated for this device.",
   },
 ];
 
@@ -73,8 +73,8 @@ export default function ActivatePage() {
           </h1>
           <p className="mt-6 max-w-md text-base leading-7 text-slate-400">
             This page does not create or change playlists. It connects your
-            player to the playlist your provider already assigned to its MAC
-            address.
+            player to the sources you added to this MAC address in the user
+            portal.
           </p>
 
           <div className="mt-10 space-y-4">
@@ -95,8 +95,8 @@ export default function ActivatePage() {
 
           <div className="mt-10 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4 text-sm leading-6 text-cyan-100/70">
             If the player still says <strong>Waiting for activation</strong>,
-            check that the MAC address in the admin panel matches the one on the
-            TV exactly.
+            sign in to the user portal with this MAC address and DEVICE KEY and
+            add an Xtream or M3U source first.
           </div>
 
           <Link

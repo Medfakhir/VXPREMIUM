@@ -27,13 +27,13 @@ export default function PortalLoginForm() {
         error?: string;
       };
       if (!response.ok) {
-        throw new Error(data.error ?? "Could not load the captcha");
+        throw new Error(data.error ?? "Could not load the letters");
       }
       setChallenge(data);
     } catch (caught) {
       setChallenge(null);
       setError(
-        caught instanceof Error ? caught.message : "Could not load the captcha",
+        caught instanceof Error ? caught.message : "Could not load the letters",
       );
     } finally {
       setLoadingCaptcha(false);
@@ -49,7 +49,7 @@ export default function PortalLoginForm() {
         };
         if (!active) return;
         if (!response.ok) {
-          throw new Error(data.error ?? "Could not load the captcha");
+          throw new Error(data.error ?? "Could not load the letters");
         }
         setChallenge(data);
         setError("");
@@ -58,7 +58,7 @@ export default function PortalLoginForm() {
         if (!active) return;
         setChallenge(null);
         setError(
-          caught instanceof Error ? caught.message : "Could not load the captcha",
+          caught instanceof Error ? caught.message : "Could not load the letters",
         );
       })
       .finally(() => {
@@ -72,7 +72,7 @@ export default function PortalLoginForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!challenge) {
-      setError("Refresh the captcha and try again.");
+      setError("Refresh the letters and try again.");
       return;
     }
     setBusy(true);
@@ -112,7 +112,8 @@ export default function PortalLoginForm() {
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-400">
           Sign in with the MAC address and DEVICE KEY shown on your player. Your
-          provider must have created a device account for this MAC first.
+          device account is created automatically on first sign-in, then you can
+          add your own Xtream or M3U sources.
         </p>
       </div>
 
@@ -156,7 +157,7 @@ export default function PortalLoginForm() {
         <div>
           <div className="flex items-center justify-between gap-3">
             <label className="admin-label" htmlFor="portal-captcha">
-              Human check
+              Quick check
             </label>
             <button
               type="button"
@@ -164,35 +165,43 @@ export default function PortalLoginForm() {
               onClick={() => void loadCaptcha()}
               disabled={loadingCaptcha || busy}
             >
-              {loadingCaptcha ? "Loading..." : "New image"}
+              {loadingCaptcha ? "Loading..." : "New letters"}
             </button>
           </div>
-          <div className="mt-1 grid min-h-[88px] place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-2">
+          <div className="mt-1 grid min-h-[84px] place-items-center rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-4 py-2">
             {challenge ? (
               <Image
                 src={challenge.image}
-                alt="Captcha challenge"
-                width={260}
-                height={72}
+                alt="Two letter check"
+                width={200}
+                height={84}
                 unoptimized
-                className="h-[72px] w-auto rounded-lg"
+                className="h-[84px] w-auto rounded-lg"
               />
             ) : (
-              <p className="text-sm text-slate-500">Loading captcha...</p>
+              <p className="text-sm text-slate-500">Loading letters...</p>
             )}
           </div>
           <input
             id="portal-captcha"
-            className="admin-input mt-2 font-mono uppercase tracking-[0.2em]"
+            className="admin-input mt-2 font-mono uppercase tracking-[0.4em]"
             value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
-            placeholder="Type the characters shown"
+            onChange={(event) =>
+              setAnswer(
+                event.target.value
+                  .replace(/[^a-zA-Z]/g, "")
+                  .slice(0, 2)
+                  .toUpperCase(),
+              )
+            }
+            placeholder="AB"
+            maxLength={2}
             autoComplete="off"
             spellCheck={false}
             required
           />
           <p className="mt-2 text-xs text-slate-500">
-            Type the characters in the image. Case does not matter.
+            Type the 2 letters shown (case does not matter).
           </p>
         </div>
 

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     try {
       if (!(await verifyCaptcha(input.captchaToken, input.captchaAnswer))) {
-        throw new ApiError("Captcha answer is incorrect", 403);
+        throw new ApiError("Incorrect answer", 403);
       }
       const { line, user } = await authenticatePortalLine(
         mac,

@@ -16,16 +16,21 @@ import { getPlaylist, listPlaylists } from "@/lib/playlists";
 import type { PlaylistRecord } from "@/lib/playlists";
 import { deletePortalSessionsForLine } from "@/lib/portal-session-store";
 import type {
+  AdminUser,
   LineStatus,
   LineView,
   PlayerActivationResponse,
   PlayerPlaylist,
 } from "@/lib/types";
-import { getUser, isExpired, listUsers } from "@/lib/users";
+import { createUser, getUser, isExpired, listUsers } from "@/lib/users";
 import type { DeviceRecord } from "@/lib/users";
 
 const LINE_PREFIX = "lines/";
 const DEVICE_PREFIX = "devices/";
+
+// Self-service devices register on first sign-in without an admin step.
+const SELF_SERVICE_PLAN = "Self-service";
+const SELF_SERVICE_TTL_DAYS = 3650;
 
 export type LineRecord = {
   id: string;
@@ -354,36 +359,115 @@ async function updateDevice(
   await writeJson(`${DEVICE_PREFIX}${device.id}`, device);
 }
 
+function selfServiceUsername(mac: string) {
+  return `device-${mac.replace(/[^0-9A-F]/gi, "").toLowerCase()}`;
+}
+
+async function ensureSelfServiceUser(mac: string) {
+  const username = selfServiceUsername(mac);
+  const users = await listUsers();
+  const existing = users.find((user) => user.username === username);
+  if (existing) {
+    return existing;
+  }
+  const expiresAt = new Date(
+    Date.now() + SELF_SERVICE_TTL_DAYS * 86_400_000,
+  ).toISOString();
+  return createUser({
+    username,
+    name: `Device ${mac}`,
+    email: "",
+    plan: SELF_SERVICE_PLAN,
+    status: "active",
+    expiresAt,
+    maxConnections: 1,
+    allowOwnPlaylists: true,
+    notes: "Auto-created when this device signed in without an admin step.",
+  });
+}
+
+async function createSelfServiceLine(
+  user: AdminUser,
+  mac: string,
+  deviceKey: string,
+  deviceName?: string,
+  ip?: string,
+) {
+  const now = new Date().toISOString();
+  const name = deviceName?.trim() || `Device ${mac}`;
+  const line: LineRecord = {
+    id: randomUUID(),
+    name,
+    mac,
+    deviceKeyHash: deviceKeyFingerprint(deviceKey),
+    userId: user.id,
+    playlistId: "",
+    playlistIds: [],
+    status: "active",
+    expiresAt: user.expiresAt,
+    lastSeenAt: now,
+    lastIp: ip?.trim() || "",
+    lastDeviceName: name,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await Promise.all([
+    writeJson(`${LINE_PREFIX}${line.id}`, line),
+    updateDevice(line, name, now),
+  ]);
+  return line;
+}
+
+/**
+ * Finds the line for a device. When no admin has provisioned the MAC address
+ * yet, a self-service account is created on first use so the device can sign
+ * in and add its own playlists without any admin step.
+ */
+export async function resolveDeviceLine(input: {
+  mac: string;
+  deviceKey: string;
+  deviceName?: string;
+  ip?: string;
+}): Promise<{ line: LineRecord; user: AdminUser; created: boolean }> {
+  const mac = normalizeMac(input.mac);
+  const deviceKey = normalizeDeviceKey(input.deviceKey);
+  const existing = await findLineByMac(mac);
+  if (!existing) {
+    const user = await ensureSelfServiceUser(mac);
+    const line = await createSelfServiceLine(
+      user,
+      mac,
+      deviceKey,
+      input.deviceName,
+      input.ip,
+    );
+    return { line, user, created: true };
+  }
+  if (!safeEqual(deviceKeyFingerprint(deviceKey), existing.deviceKeyHash)) {
+    throw new ApiError("Device key does not match this line", 403);
+  }
+  if (existing.status !== "active") {
+    throw new ApiError("This device is disabled", 403);
+  }
+  if (isLineExpired(existing)) {
+    throw new ApiError("This device has expired", 403);
+  }
+  const user = await getUser(existing.userId);
+  if (!user || user.status !== "active" || isExpired(user)) {
+    throw new ApiError("This user account is inactive", 403);
+  }
+  return { line: existing, user, created: false };
+}
+
 export async function activateLine(input: {
   mac: string;
   deviceKey: string;
   deviceName?: string;
   ip?: string;
 }): Promise<PlayerActivationResponse> {
-  const mac = normalizeMac(input.mac);
-  const deviceKey = normalizeDeviceKey(input.deviceKey);
-  const line = await findLineByMac(mac);
-  if (!line) {
-    throw new ApiError("This device is not activated yet", 404);
-  }
-  if (!safeEqual(deviceKeyFingerprint(deviceKey), line.deviceKeyHash)) {
-    throw new ApiError("Device key does not match this line", 403);
-  }
-  if (line.status !== "active") {
-    throw new ApiError("This line is disabled", 403);
-  }
-  if (isLineExpired(line)) {
-    throw new ApiError("This line has expired", 403);
-  }
+  const { line, created } = await resolveDeviceLine(input);
 
-  const [user, allPlaylists] = await Promise.all([
-    getUser(line.userId),
-    listPlaylists(),
-  ]);
-  if (!user || user.status !== "active" || isExpired(user)) {
-    throw new ApiError("This user account is inactive", 403);
-  }
-
+  const allPlaylists = await listPlaylists();
   const assigned = linePlaylistIds(line)
     .map((id) => allPlaylists.find((playlist) => playlist.id === id))
     .filter(
@@ -392,7 +476,9 @@ export async function activateLine(input: {
     );
   if (!assigned.length) {
     throw new ApiError(
-      "No active playlist is assigned to this device",
+      created
+        ? "This device is registered but has no playlist yet. Add an Xtream or M3U source in the web portal, then try again."
+        : "No active playlist is assigned to this device",
       404,
     );
   }

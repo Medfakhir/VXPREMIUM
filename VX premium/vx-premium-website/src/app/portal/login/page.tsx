@@ -21,7 +21,7 @@ const steps = [
   {
     number: "02",
     title: "Sign in here",
-    text: "Enter both codes and the characters shown in the human check.",
+    text: "Enter both codes and the 2 letters shown in the quick check.",
   },
   {
     number: "03",
@@ -91,9 +91,10 @@ export default function PortalLoginPage() {
           </div>
 
           <div className="mt-10 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.04] p-4 text-sm leading-6 text-cyan-100/70">
-            Your access expiry is controlled by your provider. If the player
-            says <strong>Waiting for activation</strong>, contact your provider
-            and confirm the MAC address on file.
+            No admin step is required. Your device account is created the first
+            time you sign in with this MAC address and DEVICE KEY. Add your
+            playlists here, then open the player and tap
+            <strong> Sync now</strong> to load them.
           </div>
         </section>
 
