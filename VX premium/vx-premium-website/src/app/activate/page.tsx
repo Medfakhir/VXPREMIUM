@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import ActivateDeviceForm from "@/components/public/ActivateDeviceForm";
+import { RELEASE, RELEASE_LABEL } from "@/lib/release";
 
 export const metadata: Metadata = {
   title: "Activate your device | VX Premium",
@@ -100,12 +101,15 @@ export default function ActivatePage() {
           </div>
 
           <Link
-            href="/downloads/VX-Premium-1.2.1-release.apk"
+            href={RELEASE.apkFile}
             className="btn-secondary mt-4"
           >
             Download the Android APK
           </Link>
-          <p className="mt-3 text-xs leading-5 text-slate-500">
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-cyan-200/70">
+            {RELEASE_LABEL}
+          </p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">
             Updating from an older version? Uninstall the previous app first,
             then install this one. New installs are unaffected.
           </p>

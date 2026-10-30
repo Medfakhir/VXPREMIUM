@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RELEASE, RELEASE_LABEL } from "@/lib/release";
 
 const features = [
   {
@@ -88,13 +89,18 @@ export default function Home() {
             >
               User portal
             </Link>
-            <Link
-              href="/downloads/VX-Premium-1.2.1-release.apk"
-              title="Updating from an older version? Uninstall the previous app first."
-              className="text-slate-300 transition hover:text-white"
-            >
-              Download Android APK
-            </Link>
+            <div className="flex flex-col items-end gap-0.5">
+              <Link
+                href={RELEASE.apkFile}
+                title="Updating from an older version? Uninstall the previous app first."
+                className="text-slate-300 transition hover:text-white"
+              >
+                Download Android APK
+              </Link>
+              <span className="text-[10px] uppercase tracking-wide text-slate-600">
+                {RELEASE_LABEL}
+              </span>
+            </div>
           </div>
         </footer>
       </div>
