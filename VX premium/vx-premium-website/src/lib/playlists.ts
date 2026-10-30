@@ -14,7 +14,6 @@ import type {
   PlaylistView,
 } from "@/lib/types";
 import { getUser } from "@/lib/users";
-import { parseXtreamPlaylistUrl } from "@/lib/xtream-link";
 
 const PLAYLIST_PREFIX = "playlists/";
 const LINE_PREFIX = "lines/";
@@ -108,23 +107,14 @@ export async function createPlaylist(input: CreatePlaylistInput) {
     throw new ApiError("User not found", 404);
   }
 
-  // A plain M3U link that is really an Xtream panel link is stored as Xtream so
-  // the player can load it through the Xtream API.
-  let type = input.type;
-  let serverUrl = input.serverUrl;
-  let username = input.username;
-  let password = input.password;
-  let m3uUrl = input.m3uUrl;
-  if (type === "m3u") {
-    const xtream = parseXtreamPlaylistUrl(m3uUrl);
-    if (xtream) {
-      type = "xtream";
-      serverUrl = xtream.serverUrl;
-      username = xtream.username;
-      password = xtream.password;
-      m3uUrl = "";
-    }
-  }
+  // The type the owner picked is stored as-is so the web portal and the player
+  // always show the exact source type (Xtream stays Xtream, M3U stays M3U).
+  // Any Xtream credentials are derived later when the device activates.
+  const type = input.type;
+  const serverUrl = input.serverUrl;
+  const username = input.username;
+  const password = input.password;
+  const m3uUrl = input.m3uUrl;
 
   assertCredentials(type, serverUrl, username, password, m3uUrl);
 
@@ -158,12 +148,11 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
     throw new ApiError("Playlist not found", 404);
   }
 
-  let nextType = patch.type ?? playlist.type;
+  const nextType = patch.type ?? playlist.type;
   let serverUrl = patch.serverUrl ?? playlist.serverUrl;
   let username = patch.username ?? playlist.username;
   let password = patch.password ?? "";
   let m3uUrl = patch.m3uUrl ?? "";
-  let convertedToXtream = false;
 
   if (nextType === "xtream") {
     if (!password) {
@@ -182,19 +171,10 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
         throw new ApiError("M3U URL is required", 422);
       }
     }
-    const xtream = parseXtreamPlaylistUrl(m3uUrl);
-    if (xtream) {
-      nextType = "xtream";
-      serverUrl = xtream.serverUrl;
-      username = xtream.username;
-      password = xtream.password;
-      m3uUrl = "";
-      convertedToXtream = true;
-    } else {
-      serverUrl = "";
-      username = "";
-      password = "";
-    }
+    // Keep the M3U type the owner picked; credentials are derived at activation.
+    serverUrl = "";
+    username = "";
+    password = "";
   }
   assertCredentials(nextType, serverUrl, username, password, m3uUrl);
 
@@ -209,8 +189,7 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
   if (
     patch.password !== undefined ||
     patch.m3uUrl !== undefined ||
-    patch.type !== undefined ||
-    convertedToXtream
+    patch.type !== undefined
   ) {
     playlist.secret = encryptSecret(nextType === "xtream" ? password : m3uUrl);
   }

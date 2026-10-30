@@ -500,14 +500,15 @@ export async function activateLine(input: {
       } catch {
         m3uUrl = "";
       }
-      // An M3U link that is really an Xtream panel link is delivered as Xtream
-      // so the player loads it through the Xtream API.
+      // An Xtream-style M3U link is delivered with derived Xtream credentials
+      // so the player can stream it, but it keeps the type the owner chose
+      // (M3U) so the app shows the exact source type on the account card.
       const xtream = parseXtreamPlaylistUrl(m3uUrl);
       if (xtream) {
         return {
           id: playlist.id,
           name: playlist.name,
-          type: "xtream",
+          type: playlist.type,
           serverUrl: xtream.serverUrl,
           username: xtream.username,
           password: xtream.password,
