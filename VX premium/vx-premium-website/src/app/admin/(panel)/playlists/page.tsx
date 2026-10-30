@@ -450,7 +450,15 @@ function PlaylistEditorDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const userLines = lines.filter((line) => line.userId === userId);
+  const sortedLines = useMemo(
+    () =>
+      [...lines].sort(
+        (a, b) =>
+          (a.userName || "").localeCompare(b.userName || "") ||
+          a.name.localeCompare(b.name),
+      ),
+    [lines],
+  );
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -547,15 +555,27 @@ function PlaylistEditorDialog({
               <select
                 className="admin-input"
                 value={lineId}
-                onChange={(event) => setLineId(event.target.value)}
+                onChange={(event) => {
+                  const nextLineId = event.target.value;
+                  setLineId(nextLineId);
+                  const selected = lines.find(
+                    (line) => line.id === nextLineId,
+                  );
+                  if (selected) setUserId(selected.userId);
+                }}
               >
                 <option value="">Keep unassigned</option>
-                {userLines.map((line) => (
+                {sortedLines.map((line) => (
                   <option key={line.id} value={line.id}>
-                    {line.name} — {line.mac}
+                    {line.userName} — {line.name} ({line.mac})
                   </option>
                 ))}
               </select>
+              <span className="mt-1 block text-xs text-slate-500">
+                {lines.length
+                  ? "Pick a device to attach this source straight to that TV. The assigned user switches to the device automatically."
+                  : "No devices yet — open the player on the TV once, then pair it on the Lines page."}
+              </span>
             </label>
             <label className="block sm:col-span-2">
               <span className="admin-label">Playlist name</span>
