@@ -1,4 +1,4 @@
-import { readJson, writeJson } from "@/lib/json-store";
+import { readJsonIfExists, writeJson } from "@/lib/json-store";
 import { playerConfigSchema } from "@/lib/schemas";
 import type { PlayerConfig } from "@/lib/types";
 
@@ -18,15 +18,19 @@ export const DEFAULT_PLAYER_CONFIG: PlayerConfig = playerConfigSchema.parse({});
  * a partially-shaped payload.
  */
 export async function getPlayerConfig(): Promise<PlayerConfig> {
-  const stored = await readJson<Partial<PlayerConfig>>(CONFIG_KEY);
-  if (!stored) {
+  try {
+    const stored = await readJsonIfExists<Partial<PlayerConfig>>(CONFIG_KEY);
+    if (!stored) {
+      return { ...DEFAULT_PLAYER_CONFIG };
+    }
+    const parsed = playerConfigSchema.safeParse(stored);
+    if (!parsed.success) {
+      return { ...DEFAULT_PLAYER_CONFIG };
+    }
+    return { ...DEFAULT_PLAYER_CONFIG, ...parsed.data };
+  } catch {
     return { ...DEFAULT_PLAYER_CONFIG };
   }
-  const parsed = playerConfigSchema.safeParse(stored);
-  if (!parsed.success) {
-    return { ...DEFAULT_PLAYER_CONFIG };
-  }
-  return { ...DEFAULT_PLAYER_CONFIG, ...parsed.data };
 }
 
 /**
