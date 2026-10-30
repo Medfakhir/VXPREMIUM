@@ -9,9 +9,9 @@
  *      "Check for updates" button offers it to players already on this build.
  */
 export const RELEASE = {
-  version: "1.2.2",
-  versionCode: 4,
-  apkFile: "/downloads/VX-Premium-1.2.2-release.apk",
+  version: "1.2.3",
+  versionCode: 5,
+  apkFile: "/downloads/VX-Premium-1.2.3-release.apk",
   /** ISO date the build was published. */
   releasedAt: "2026-10-30",
   /** Human-readable publish date shown next to the download link. */
