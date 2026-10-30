@@ -10,9 +10,10 @@ export type XtreamLink = {
  *   http://host/get.php?username=USER&password=PASS&type=m3u_plus&output=ts
  *   http://host/player_api.php?username=USER&password=PASS
  *
- * The Android player speaks the Xtream API, so when a device adds one of these
- * we store it as an Xtream source instead of a raw M3U file. Returns `null` for
- * ordinary M3U playlists so real M3U URLs are left untouched.
+ * The Android player speaks the Xtream API, so when a device activates one of
+ * these the site derives the Xtream server + credentials from the link while
+ * keeping the type the owner picked (M3U). Returns `null` for ordinary M3U
+ * playlists so real M3U URLs are left untouched.
  */
 export function parseXtreamPlaylistUrl(raw: string): XtreamLink | null {
   const value = raw.trim();
