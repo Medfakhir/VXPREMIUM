@@ -12,8 +12,8 @@
     Content-Disposition = 'attachment; filename="VX-Premium-1.2.0-release.apk"'
     X-Content-Type-Options = "nosniff"
 
-[[headers]]
-  for = "/player-config.json"
-  [headers.values]
-    Content-Type = "application/json; charset=utf-8"
-    Cache-Control = "no-store"
+[[redirects]]
+  from = "/player-config.json"
+  to = "/api/player/config"
+  status = 200
+  force = true

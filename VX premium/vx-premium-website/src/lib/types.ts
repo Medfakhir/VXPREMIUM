@@ -137,6 +137,25 @@ export type OverviewStats = {
   onlineDevices: number;
 };
 
+export type PlayerConfig = {
+  server_url: string;
+  backup_server_urls: string[];
+  hide_server_url_input: boolean;
+  show_marketing_text: boolean;
+  marketing_text: string;
+  show_pricing: boolean;
+  pricing_text: string;
+  qr_setup_url: string;
+  qr_instructions: string;
+  use_custom_qr_image: boolean;
+  custom_qr_image_url: string;
+  amplitude_api_key: string;
+  testing_mode: boolean;
+  test_username: string;
+  test_password: string;
+  test_server_url: string;
+};
+
 export type AdminSessionView = {
   id: string;
   name: string;

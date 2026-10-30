@@ -39,6 +39,13 @@ const navigation = [
       <path d="M5 12h4l2-5 3 10 2-5h3M4 4h16v16H4z" />
     ),
   },
+  {
+    href: "/admin/config",
+    label: "Player config",
+    icon: (
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7.5 7.5 0 0 0-2-1.2l-.4-2.5h-4l-.4 2.5a7.5 7.5 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5a7.4 7.4 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-1a7.5 7.5 0 0 0 2 1.2l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z" />
+    ),
+  },
 ];
 
 function NavIcon({ children }: { children: React.ReactNode }) {

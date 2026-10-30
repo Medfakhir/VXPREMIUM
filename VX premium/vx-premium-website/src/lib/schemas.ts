@@ -233,3 +233,44 @@ export const portalLoginSchema = z.object({
   captchaToken: z.string().trim().min(1, "Captcha is required").max(2000),
   captchaAnswer: z.string().trim().min(1, "Type the 2 letters").max(120),
 });
+
+const optionalHttpUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .refine((value) => {
+    if (!value) return true;
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Enter a valid http or https URL");
+
+export const playerConfigSchema = z.object({
+  server_url: optionalHttpUrl.default(""),
+  backup_server_urls: z.array(optionalHttpUrl).max(20).default([]),
+  hide_server_url_input: z.boolean().default(false),
+  show_marketing_text: z.boolean().default(true),
+  marketing_text: z
+    .string()
+    .trim()
+    .max(500)
+    .default("THIS PLAYER IS ONLY FOR VP PLAYER USERS"),
+  show_pricing: z.boolean().default(true),
+  pricing_text: z.string().trim().max(500).default("VP Player"),
+  qr_setup_url: optionalHttpUrl.default(""),
+  qr_instructions: z
+    .string()
+    .trim()
+    .max(300)
+    .default("Scan the QR code to add your playlist"),
+  use_custom_qr_image: z.boolean().default(false),
+  custom_qr_image_url: optionalHttpUrl.default(""),
+  amplitude_api_key: z.string().trim().max(200).default(""),
+  testing_mode: z.boolean().default(false),
+  test_username: z.string().trim().max(200).default(""),
+  test_password: z.string().trim().max(200).default(""),
+  test_server_url: optionalHttpUrl.default(""),
+});
