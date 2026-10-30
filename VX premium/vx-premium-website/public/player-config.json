@@ -1,0 +1,18 @@
+{
+  "server_url": "",
+  "backup_server_urls": [],
+  "hide_server_url_input": false,
+  "show_marketing_text": true,
+  "marketing_text": "THIS PLAYER IS ONLY FOR VP PLAYER USERS",
+  "show_pricing": true,
+  "pricing_text": "VP Player",
+  "qr_setup_url": "https://vxpremium.com",
+  "qr_instructions": "Scan the QR code to add your playlist",
+  "use_custom_qr_image": false,
+  "custom_qr_image_url": "",
+  "amplitude_api_key": "",
+  "testing_mode": false,
+  "test_username": "",
+  "test_password": "",
+  "test_server_url": ""
+}
