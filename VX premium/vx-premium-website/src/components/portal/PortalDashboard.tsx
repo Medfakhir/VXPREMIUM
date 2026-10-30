@@ -495,9 +495,10 @@ function PlaylistDialog({
   const [type, setType] = useState<PlaylistType>(playlist?.type ?? "xtream");
   const [serverUrl, setServerUrl] = useState(playlist?.serverUrl ?? "");
   const [username, setUsername] = useState(playlist?.username ?? "");
-  const [password, setPassword] = useState("");
-  const [m3uUrl, setM3uUrl] = useState("");
+  const [password, setPassword] = useState(playlist?.password ?? "");
+  const [m3uUrl, setM3uUrl] = useState(playlist?.m3uUrl ?? "");
   const [epgUrl, setEpgUrl] = useState("");
+  const [revealSecret, setRevealSecret] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -642,15 +643,12 @@ function PlaylistDialog({
                 />
               </label>
               <label className="block">
-                <span className="admin-label">
-                  {playlist ? "New password (optional)" : "Xtream password"}
-                </span>
+                <span className="admin-label">Xtream password</span>
                 <input
                   className="admin-input"
-                  type="password"
+                  type={revealSecret ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder={playlist ? "Leave blank to keep" : ""}
                   required={!playlist}
                   autoComplete="new-password"
                 />
@@ -659,24 +657,28 @@ function PlaylistDialog({
           ) : (
             <div className="mt-4">
               <label className="block">
-                <span className="admin-label">
-                  {playlist ? "New M3U URL (optional)" : "M3U playlist URL"}
-                </span>
+                <span className="admin-label">M3U playlist URL</span>
                 <input
                   className="admin-input"
                   value={m3uUrl}
                   onChange={(event) => setM3uUrl(event.target.value)}
-                  placeholder={
-                    playlist
-                      ? "Leave blank to keep the current URL"
-                      : "https://provider.example.com/playlist.m3u"
-                  }
+                  placeholder="https://provider.example.com/playlist.m3u"
                   required={!playlist}
                   autoCapitalize="none"
                 />
               </label>
             </div>
           )}
+
+          <label className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+            <input
+              type="checkbox"
+              className="accent-cyan-300"
+              checked={revealSecret}
+              onChange={(event) => setRevealSecret(event.target.checked)}
+            />
+            Show saved credentials
+          </label>
 
           <div className="mt-4">
             <label className="block">
@@ -696,8 +698,8 @@ function PlaylistDialog({
           </div>
 
           <div className="mt-4 rounded-xl border border-cyan-300/15 bg-cyan-300/[0.05] px-3.5 py-3 text-xs leading-5 text-cyan-100/70">
-            Credentials and M3U URLs are encrypted before storage and are never
-            returned to the browser after saving.
+            Credentials and M3U URLs are encrypted before storage and only shown
+            back to you here so you can check or update them.
           </div>
 
           {error ? (

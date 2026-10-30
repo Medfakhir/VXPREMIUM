@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api";
+import { decryptSecret } from "@/lib/crypto";
 import {
   addPlaylistToLine,
   getLine,
@@ -28,6 +29,13 @@ function toPortalPlaylistView(
   playlist: PlaylistRecord,
   line: LineRecord,
 ): PortalPlaylistView {
+  const isXtream = playlist.type === "xtream";
+  let secretValue = "";
+  try {
+    secretValue = decryptSecret(playlist.secret);
+  } catch {
+    secretValue = "";
+  }
   return {
     id: playlist.id,
     name: playlist.name,
@@ -36,6 +44,8 @@ function toPortalPlaylistView(
     endpointHost: playlist.endpointHost,
     serverUrl: playlist.serverUrl,
     username: playlist.username,
+    password: isXtream ? secretValue : "",
+    m3uUrl: isXtream ? "" : secretValue,
     hasEpg: Boolean(playlist.epgSecret),
     owner: playlist.ownerLineId === line.id,
     primary: playlist.id === line.playlistId,

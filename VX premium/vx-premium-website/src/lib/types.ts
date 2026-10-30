@@ -30,6 +30,8 @@ export type PlaylistView = {
   assignedLineNames: string[];
   serverUrl: string;
   username: string;
+  password: string;
+  m3uUrl: string;
   endpointHost: string;
   hasSecret: boolean;
   hasEpg: boolean;
@@ -103,6 +105,8 @@ export type PortalPlaylistView = {
   endpointHost: string;
   serverUrl: string;
   username: string;
+  password: string;
+  m3uUrl: string;
   hasEpg: boolean;
   owner: boolean;
   primary: boolean;

@@ -287,6 +287,13 @@ export function toPlaylistView(
   assignedLineIds: string[] = [],
   assignedLineNames: string[] = [],
 ): PlaylistView {
+  const isXtream = playlist.type === "xtream";
+  let secretValue = "";
+  try {
+    secretValue = decryptSecret(playlist.secret);
+  } catch {
+    secretValue = "";
+  }
   return {
     id: playlist.id,
     userId: playlist.userId,
@@ -299,6 +306,8 @@ export function toPlaylistView(
     assignedLineNames,
     serverUrl: playlist.serverUrl,
     username: playlist.username,
+    password: isXtream ? secretValue : "",
+    m3uUrl: isXtream ? "" : secretValue,
     endpointHost: playlist.endpointHost,
     hasSecret: Boolean(playlist.secret),
     hasEpg: Boolean(playlist.epgSecret),

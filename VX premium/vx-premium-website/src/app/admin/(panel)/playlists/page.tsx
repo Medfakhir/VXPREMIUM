@@ -693,10 +693,11 @@ function PlaylistEditDialog({
   const [status, setStatus] = useState<PlaylistStatus>(playlist.status);
   const [serverUrl, setServerUrl] = useState(playlist.serverUrl);
   const [username, setUsername] = useState(playlist.username);
-  const [password, setPassword] = useState("");
-  const [m3uUrl, setM3uUrl] = useState("");
+  const [password, setPassword] = useState(playlist.password);
+  const [m3uUrl, setM3uUrl] = useState(playlist.m3uUrl);
   const [epgUrl, setEpgUrl] = useState("");
   const [clearEpg, setClearEpg] = useState(false);
+  const [revealSecret, setRevealSecret] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -851,13 +852,12 @@ function PlaylistEditDialog({
                 />
               </label>
               <label className="block">
-                <span className="admin-label">New password (optional)</span>
+                <span className="admin-label">Xtream password</span>
                 <input
                   className="admin-input"
-                  type="password"
+                  type={revealSecret ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Leave blank to keep"
                   autoComplete="new-password"
                 />
               </label>
@@ -865,17 +865,26 @@ function PlaylistEditDialog({
           ) : (
             <div className="mt-4">
               <label className="block">
-                <span className="admin-label">New M3U URL (optional)</span>
+                <span className="admin-label">M3U URL</span>
                 <input
                   className="admin-input"
                   value={m3uUrl}
                   onChange={(event) => setM3uUrl(event.target.value)}
-                  placeholder="Leave blank to keep the current URL"
                   autoCapitalize="none"
                 />
               </label>
             </div>
           )}
+
+          <label className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+            <input
+              type="checkbox"
+              className="accent-cyan-300"
+              checked={revealSecret}
+              onChange={(event) => setRevealSecret(event.target.checked)}
+            />
+            Show saved credentials
+          </label>
 
           <div className="mt-4">
             <label className="block">
