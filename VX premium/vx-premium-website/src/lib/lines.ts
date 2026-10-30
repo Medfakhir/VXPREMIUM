@@ -29,9 +29,11 @@ import type { DeviceRecord } from "@/lib/users";
 const LINE_PREFIX = "lines/";
 const DEVICE_PREFIX = "devices/";
 
-// Self-service devices register on first sign-in without an admin step.
+// Self-service devices register on first sign-in without an admin step and get
+// a short free trial. After the trial ends an admin adds time to the device.
 const SELF_SERVICE_PLAN = "Self-service";
 const SELF_SERVICE_TTL_DAYS = 3650;
+const SELF_SERVICE_TRIAL_DAYS = 7;
 
 export type LineRecord = {
   id: string;
@@ -405,7 +407,9 @@ async function createSelfServiceLine(
     playlistId: "",
     playlistIds: [],
     status: "active",
-    expiresAt: user.expiresAt,
+    expiresAt: new Date(
+      Date.now() + SELF_SERVICE_TRIAL_DAYS * 86_400_000,
+    ).toISOString(),
     lastSeenAt: now,
     lastIp: ip?.trim() || "",
     lastDeviceName: name,
@@ -445,17 +449,24 @@ export async function resolveDeviceLine(input: {
     return { line, user, created: true };
   }
   if (!safeEqual(deviceKeyFingerprint(deviceKey), existing.deviceKeyHash)) {
-    throw new ApiError("Device key does not match this line", 403);
+    throw new ApiError("Device key does not match this line", 403, "device_key");
   }
   if (existing.status !== "active") {
-    throw new ApiError("This device is disabled", 403);
+    throw new ApiError("This device is disabled", 403, "disabled");
   }
   if (isLineExpired(existing)) {
-    throw new ApiError("This device has expired", 403);
+    throw new ApiError(
+      "This device's free trial has expired",
+      403,
+      "expired",
+    );
   }
   const user = await getUser(existing.userId);
-  if (!user || user.status !== "active" || isExpired(user)) {
-    throw new ApiError("This user account is inactive", 403);
+  if (!user || user.status !== "active") {
+    throw new ApiError("This user account is inactive", 403, "disabled");
+  }
+  if (isExpired(user)) {
+    throw new ApiError("This user account has expired", 403, "expired");
   }
   return { line: existing, user, created: false };
 }

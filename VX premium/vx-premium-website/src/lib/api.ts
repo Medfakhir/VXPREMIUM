@@ -4,11 +4,13 @@ import { SecurityConfigError } from "@/lib/crypto";
 
 export class ApiError extends Error {
   status: number;
+  code?: string;
 
-  constructor(message: string, status = 400) {
+  constructor(message: string, status = 400, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -23,7 +25,12 @@ export function json(data: unknown, status = 200) {
 
 export function errorResponse(error: unknown) {
   if (error instanceof ApiError) {
-    return json({ error: error.message }, error.status);
+    return json(
+      error.code
+        ? { error: error.message, code: error.code }
+        : { error: error.message },
+      error.status,
+    );
   }
   if (error instanceof AuthError) {
     return json({ error: error.message }, error.status);
