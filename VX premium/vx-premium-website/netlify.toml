@@ -9,23 +9,29 @@
   for = "/downloads/*.apk"
   [headers.values]
     Content-Type = "application/vnd.android.package-archive"
-    Content-Disposition = 'attachment; filename="VX-Premium-1.2.3-release.apk"'
+    Content-Disposition = 'attachment; filename="VX-Premium-1.2.4-release.apk"'
     X-Content-Type-Options = "nosniff"
 
 [[redirects]]
+  from = "/downloads/VX-Premium-1.2.3-release.apk"
+  to = "/downloads/VX-Premium-1.2.4-release.apk"
+  status = 302
+  force = true
+
+[[redirects]]
   from = "/downloads/VX-Premium-1.2.2-release.apk"
-  to = "/downloads/VX-Premium-1.2.3-release.apk"
+  to = "/downloads/VX-Premium-1.2.4-release.apk"
   status = 302
   force = true
 
 [[redirects]]
   from = "/downloads/VX-Premium-1.2.1-release.apk"
-  to = "/downloads/VX-Premium-1.2.3-release.apk"
+  to = "/downloads/VX-Premium-1.2.4-release.apk"
   status = 302
   force = true
 
 [[redirects]]
   from = "/downloads/VX-Premium-1.2.0-release.apk"
-  to = "/downloads/VX-Premium-1.2.3-release.apk"
+  to = "/downloads/VX-Premium-1.2.4-release.apk"
   status = 302
   force = true
