@@ -14,6 +14,7 @@ import {
 } from "@/lib/json-store";
 import { getPlaylist, listPlaylists } from "@/lib/playlists";
 import type { PlaylistRecord } from "@/lib/playlists";
+import { parseXtreamPlaylistUrl } from "@/lib/xtream-link";
 import { deletePortalSessionsForLine } from "@/lib/portal-session-store";
 import type {
   AdminUser,
@@ -493,6 +494,27 @@ export async function activateLine(input: {
       }
     }
     if (playlist.type === "m3u") {
+      let m3uUrl = "";
+      try {
+        m3uUrl = decryptSecret(playlist.secret);
+      } catch {
+        m3uUrl = "";
+      }
+      // An M3U link that is really an Xtream panel link is delivered as Xtream
+      // so the player loads it through the Xtream API.
+      const xtream = parseXtreamPlaylistUrl(m3uUrl);
+      if (xtream) {
+        return {
+          id: playlist.id,
+          name: playlist.name,
+          type: "xtream",
+          serverUrl: xtream.serverUrl,
+          username: xtream.username,
+          password: xtream.password,
+          m3uUrl: null,
+          epgUrl,
+        };
+      }
       return {
         id: playlist.id,
         name: playlist.name,
@@ -500,7 +522,7 @@ export async function activateLine(input: {
         serverUrl: "",
         username: "",
         password: "",
-        m3uUrl: decryptSecret(playlist.secret),
+        m3uUrl,
         epgUrl,
       };
     }

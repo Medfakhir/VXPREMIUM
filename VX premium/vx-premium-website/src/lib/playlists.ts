@@ -14,6 +14,7 @@ import type {
   PlaylistView,
 } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { parseXtreamPlaylistUrl } from "@/lib/xtream-link";
 
 const PLAYLIST_PREFIX = "playlists/";
 const LINE_PREFIX = "lines/";
@@ -106,26 +107,39 @@ export async function createPlaylist(input: CreatePlaylistInput) {
   if (!user) {
     throw new ApiError("User not found", 404);
   }
-  assertCredentials(
-    input.type,
-    input.serverUrl,
-    input.username,
-    input.password,
-    input.m3uUrl,
-  );
+
+  // A plain M3U link that is really an Xtream panel link is stored as Xtream so
+  // the player can load it through the Xtream API.
+  let type = input.type;
+  let serverUrl = input.serverUrl;
+  let username = input.username;
+  let password = input.password;
+  let m3uUrl = input.m3uUrl;
+  if (type === "m3u") {
+    const xtream = parseXtreamPlaylistUrl(m3uUrl);
+    if (xtream) {
+      type = "xtream";
+      serverUrl = xtream.serverUrl;
+      username = xtream.username;
+      password = xtream.password;
+      m3uUrl = "";
+    }
+  }
+
+  assertCredentials(type, serverUrl, username, password, m3uUrl);
 
   const now = new Date().toISOString();
   const playlist: PlaylistRecord = {
     id: randomUUID(),
     userId: user.id,
     name: input.name.trim(),
-    type: input.type,
+    type,
     status: input.status ?? "active",
     ownerLineId: input.ownerLineId ?? null,
-    serverUrl: input.type === "xtream" ? input.serverUrl.trim().replace(/\/+$/, "") : "",
-    username: input.type === "xtream" ? input.username.trim() : "",
-    endpointHost: hostOf(input.type === "xtream" ? input.serverUrl : input.m3uUrl),
-    secret: encryptSecret(input.type === "xtream" ? input.password : input.m3uUrl),
+    serverUrl: type === "xtream" ? serverUrl.trim().replace(/\/+$/, "") : "",
+    username: type === "xtream" ? username.trim() : "",
+    endpointHost: hostOf(type === "xtream" ? serverUrl : m3uUrl),
+    secret: encryptSecret(type === "xtream" ? password : m3uUrl),
     epgSecret: input.epgUrl ? encryptSecret(input.epgUrl.trim()) : null,
     createdAt: now,
     updatedAt: now,
@@ -144,11 +158,12 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
     throw new ApiError("Playlist not found", 404);
   }
 
-  const nextType = patch.type ?? playlist.type;
+  let nextType = patch.type ?? playlist.type;
   let serverUrl = patch.serverUrl ?? playlist.serverUrl;
   let username = patch.username ?? playlist.username;
   let password = patch.password ?? "";
   let m3uUrl = patch.m3uUrl ?? "";
+  let convertedToXtream = false;
 
   if (nextType === "xtream") {
     if (!password) {
@@ -167,9 +182,19 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
         throw new ApiError("M3U URL is required", 422);
       }
     }
-    serverUrl = "";
-    username = "";
-    password = "";
+    const xtream = parseXtreamPlaylistUrl(m3uUrl);
+    if (xtream) {
+      nextType = "xtream";
+      serverUrl = xtream.serverUrl;
+      username = xtream.username;
+      password = xtream.password;
+      m3uUrl = "";
+      convertedToXtream = true;
+    } else {
+      serverUrl = "";
+      username = "";
+      password = "";
+    }
   }
   assertCredentials(nextType, serverUrl, username, password, m3uUrl);
 
@@ -184,7 +209,8 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
   if (
     patch.password !== undefined ||
     patch.m3uUrl !== undefined ||
-    patch.type !== undefined
+    patch.type !== undefined ||
+    convertedToXtream
   ) {
     playlist.secret = encryptSecret(nextType === "xtream" ? password : m3uUrl);
   }
