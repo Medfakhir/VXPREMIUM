@@ -105,6 +105,10 @@ export default function ActivatePage() {
           >
             Download the Android APK
           </Link>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            Updating from an older version? Uninstall the previous app first,
+            then install this one. New installs are unaffected.
+          </p>
         </section>
 
         <section className="admin-card w-full p-6 sm:p-8">
