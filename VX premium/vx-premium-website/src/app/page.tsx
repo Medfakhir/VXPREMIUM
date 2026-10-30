@@ -89,7 +89,7 @@ export default function Home() {
               User portal
             </Link>
             <Link
-              href="/downloads/VX-Premium-1.2.0-release.apk"
+              href="/downloads/VX-Premium-1.2.1-release.apk"
               title="Updating from an older version? Uninstall the previous app first."
               className="text-slate-300 transition hover:text-white"
             >

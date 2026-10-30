@@ -100,7 +100,7 @@ export default function ActivatePage() {
           </div>
 
           <Link
-            href="/downloads/VX-Premium-1.2.0-release.apk"
+            href="/downloads/VX-Premium-1.2.1-release.apk"
             className="btn-secondary mt-4"
           >
             Download the Android APK
