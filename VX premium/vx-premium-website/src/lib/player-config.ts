@@ -1,4 +1,5 @@
 import { readJsonIfExists, writeJson } from "@/lib/json-store";
+import { RELEASE } from "@/lib/release";
 import { playerConfigSchema } from "@/lib/schemas";
 import type { PlayerConfig } from "@/lib/types";
 
@@ -9,8 +10,18 @@ export type { PlayerConfig };
 /**
  * Fallback values used before an admin has saved anything, and for any field
  * the player needs but the stored record does not yet contain.
+ *
+ * The in-app update prompt defaults to the build published in `release.ts` so
+ * "Check for updates" always offers the latest APK, even before an admin opens
+ * Player config -> App updates. A saved config still overrides these values.
  */
-export const DEFAULT_PLAYER_CONFIG: PlayerConfig = playerConfigSchema.parse({});
+export const DEFAULT_PLAYER_CONFIG: PlayerConfig = {
+  ...playerConfigSchema.parse({}),
+  update_apk_url: RELEASE.apkUrl,
+  update_version_code: RELEASE.versionCode,
+  update_version_name: RELEASE.version,
+  update_notes: `Version ${RELEASE.version}`,
+};
 
 /**
  * Reads the player remote-config. Always returns a complete object: missing or

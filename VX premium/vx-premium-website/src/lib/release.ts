@@ -12,6 +12,8 @@ export const RELEASE = {
   version: "1.2.5",
   versionCode: 7,
   apkFile: "/downloads/VX-Premium-1.2.5-release.apk",
+  /** Absolute download URL the Android app uses for in-app updates. */
+  apkUrl: "https://vxpremium.com/downloads/VX-Premium-1.2.5-release.apk",
   /** ISO date the build was published. */
   releasedAt: "2026-11-01",
   /** Human-readable publish date shown next to the download link. */
