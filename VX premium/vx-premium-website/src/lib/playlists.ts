@@ -14,6 +14,8 @@ import type {
   PlaylistView,
 } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { checkPlaylistRecord, checkSource } from "@/lib/source-check";
+import type { SourceCheck } from "@/lib/types";
 
 const PLAYLIST_PREFIX = "playlists/";
 const LINE_PREFIX = "lines/";
@@ -30,6 +32,8 @@ export type PlaylistRecord = {
   endpointHost: string;
   secret: EncryptedValue;
   epgSecret: EncryptedValue | null;
+  /** Last reachability probe, if the source has been checked. */
+  lastCheck?: SourceCheck | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -91,6 +95,15 @@ function hostOf(value: string) {
   }
 }
 
+/** Runs the probe and never lets an unexpected error block the save. */
+async function safeCheck(input: Parameters<typeof checkSource>[0]) {
+  try {
+    return await checkSource(input);
+  } catch {
+    return null;
+  }
+}
+
 export async function listPlaylists() {
   const keys = await listJsonKeys(PLAYLIST_PREFIX);
   const playlists = await Promise.all(
@@ -131,6 +144,13 @@ export async function createPlaylist(input: CreatePlaylistInput) {
     endpointHost: hostOf(type === "xtream" ? serverUrl : m3uUrl),
     secret: encryptSecret(type === "xtream" ? password : m3uUrl),
     epgSecret: input.epgUrl ? encryptSecret(input.epgUrl.trim()) : null,
+    lastCheck: await safeCheck({
+      type,
+      serverUrl,
+      username,
+      password,
+      m3uUrl,
+    }),
     createdAt: now,
     updatedAt: now,
   };
@@ -199,9 +219,44 @@ export async function updatePlaylist(id: string, patch: UpdatePlaylistInput) {
       : null;
   }
   if (patch.status !== undefined) playlist.status = patch.status;
+  const sourceChanged = (
+    ["type", "serverUrl", "username", "password", "m3uUrl"] as const
+  ).some((key) => patch[key] !== undefined);
+  if (sourceChanged) {
+    playlist.lastCheck = await safeCheck({
+      type: nextType,
+      serverUrl,
+      username,
+      password,
+      m3uUrl,
+    });
+  }
   playlist.updatedAt = new Date().toISOString();
   await writeJson(`${PLAYLIST_PREFIX}${playlist.id}`, playlist);
   return playlist;
+}
+
+/**
+ * Re-runs the reachability probe for a stored playlist and persists the result.
+ * Used by the admin "Check" action so a source can be re-validated on demand.
+ */
+export async function checkPlaylistById(id: string): Promise<SourceCheck | null> {
+  const playlist = await getPlaylist(id);
+  if (!playlist) {
+    throw new ApiError("Playlist not found", 404);
+  }
+  let check: SourceCheck | null = null;
+  try {
+    check = await checkPlaylistRecord(playlist);
+  } catch {
+    check = null;
+  }
+  if (check) {
+    playlist.lastCheck = check;
+    playlist.updatedAt = new Date().toISOString();
+    await writeJson(`${PLAYLIST_PREFIX}${playlist.id}`, playlist);
+  }
+  return check;
 }
 
 type LinePlaylistRef = {
@@ -290,6 +345,7 @@ export function toPlaylistView(
     endpointHost: playlist.endpointHost,
     hasSecret: Boolean(playlist.secret),
     hasEpg: Boolean(playlist.epgSecret),
+    lastCheck: playlist.lastCheck ?? null,
     createdAt: playlist.createdAt,
     updatedAt: playlist.updatedAt,
   };

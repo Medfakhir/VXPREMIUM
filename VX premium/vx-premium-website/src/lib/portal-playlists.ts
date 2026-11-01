@@ -49,6 +49,7 @@ function toPortalPlaylistView(
     hasEpg: Boolean(playlist.epgSecret),
     owner: playlist.ownerLineId === line.id,
     primary: playlist.id === line.playlistId,
+    lastCheck: playlist.lastCheck ?? null,
     createdAt: playlist.createdAt,
     updatedAt: playlist.updatedAt,
   };

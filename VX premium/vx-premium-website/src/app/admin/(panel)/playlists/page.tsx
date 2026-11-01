@@ -10,6 +10,7 @@ import type {
   PlaylistStatus,
   PlaylistType,
   PlaylistView,
+  SourceCheck,
 } from "@/lib/types";
 
 type PlaylistsResponse = {
@@ -35,8 +36,14 @@ export default function PlaylistsPage() {
   );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [noticeTone, setNoticeTone] = useState<"ok" | "warn">("ok");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
+
+  const flash = useCallback((message: string, tone: "ok" | "warn" = "ok") => {
+    setNotice(message);
+    setNoticeTone(tone);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -113,7 +120,7 @@ export default function PlaylistsPage() {
         method: "PATCH",
         body: JSON.stringify({ status: next }),
       });
-      setNotice(
+      flash(
         next === "disabled"
           ? `"${playlist.name}" was disabled.`
           : `"${playlist.name}" was enabled.`,
@@ -128,6 +135,31 @@ export default function PlaylistsPage() {
     }
   }
 
+  async function runCheck(playlist: PlaylistView) {
+    setBusyId(playlist.id);
+    setError("");
+    try {
+      const result = await adminFetch<{ check: SourceCheck | null }>(
+        `/api/admin/playlists/${playlist.id}/check`,
+        { method: "POST" },
+      );
+      if (!result.check) {
+        flash(`"${playlist.name}" could not be checked.`, "warn");
+      } else if (result.check.ok) {
+        flash(`"${playlist.name}" is reachable — ${result.check.message}`, "ok");
+      } else {
+        flash(`"${playlist.name}" failed validation — ${result.check.message}`, "warn");
+      }
+      await load();
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Could not check playlist",
+      );
+    } finally {
+      setBusyId("");
+    }
+  }
+
   async function removePlaylist(playlist: PlaylistView) {
     if (!window.confirm(`Delete playlist "${playlist.name}"?`)) return;
     setBusyId(playlist.id);
@@ -136,7 +168,7 @@ export default function PlaylistsPage() {
       await adminFetch(`/api/admin/playlists/${playlist.id}`, {
         method: "DELETE",
       });
-      setNotice(`"${playlist.name}" was deleted.`);
+      flash(`"${playlist.name}" was deleted.`);
       await load();
     } catch (caught) {
       setError(
@@ -187,11 +219,19 @@ export default function PlaylistsPage() {
       </div>
 
       {notice ? (
-        <div className="mt-5 flex items-center justify-between rounded-xl border border-emerald-300/20 bg-emerald-300/[0.07] px-4 py-3 text-sm text-emerald-200">
+        <div
+          className={`mt-5 flex items-center justify-between rounded-xl border px-4 py-3 text-sm ${
+            noticeTone === "warn"
+              ? "border-amber-300/25 bg-amber-300/[0.08] text-amber-100"
+              : "border-emerald-300/20 bg-emerald-300/[0.07] text-emerald-200"
+          }`}
+        >
           <span>{notice}</span>
           <button
             type="button"
-            className="text-xs font-semibold text-emerald-300"
+            className={`text-xs font-semibold ${
+              noticeTone === "warn" ? "text-amber-300" : "text-emerald-300"
+            }`}
             onClick={() => setNotice("")}
           >
             Dismiss
@@ -254,15 +294,18 @@ export default function PlaylistsPage() {
                             {playlist.type === "xtream" ? "Xtream codes" : "M3U URL"}
                             {playlist.ownerLineId ? " / user source" : " / provider source"}
                           </p>
-                          <span
-                            className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${
-                              playlist.status === "active"
-                                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
-                                : "border-amber-300/20 bg-amber-300/10 text-amber-200"
-                            }`}
-                          >
-                            {playlist.status === "active" ? "Active" : "Disabled"}
-                          </span>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${
+                                playlist.status === "active"
+                                  ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
+                                  : "border-amber-300/20 bg-amber-300/10 text-amber-200"
+                              }`}
+                            >
+                              {playlist.status === "active" ? "Active" : "Disabled"}
+                            </span>
+                            <SourceCheckBadge check={playlist.lastCheck} />
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -300,6 +343,14 @@ export default function PlaylistsPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.05] px-2.5 py-1.5 text-xs font-semibold text-emerald-200 transition hover:bg-emerald-300/10 disabled:opacity-40"
+                          onClick={() => void runCheck(playlist)}
+                          disabled={busyId === playlist.id}
+                        >
+                          {busyId === playlist.id ? "Checking..." : "Check"}
+                        </button>
                         <button
                           type="button"
                           className="rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06] disabled:opacity-40"
@@ -366,9 +417,9 @@ export default function PlaylistsPage() {
           users={users}
           lines={lines}
           onClose={() => setEditorOpen(false)}
-          onSaved={async (message) => {
+          onSaved={async (message, tone = "ok") => {
             setEditorOpen(false);
-            setNotice(message);
+            flash(message, tone);
             await load();
           }}
         />
@@ -378,9 +429,9 @@ export default function PlaylistsPage() {
         <PlaylistEditDialog
           playlist={editingPlaylist}
           onClose={() => setEditingPlaylist(null)}
-          onSaved={async (message) => {
+          onSaved={async (message, tone = "ok") => {
             setEditingPlaylist(null);
-            setNotice(message);
+            flash(message, tone);
             await load();
           }}
         />
@@ -427,6 +478,32 @@ function TypeIcon({ type }: { type: PlaylistType }) {
   );
 }
 
+function SourceCheckBadge({ check }: { check: SourceCheck | null }) {
+  if (!check) {
+    return (
+      <span
+        title="This source has not been validated yet. Use Check to test it."
+        className="inline-flex rounded-full border border-slate-300/10 bg-slate-300/[0.04] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500"
+      >
+        Not checked
+      </span>
+    );
+  }
+  const when = new Date(check.checkedAt).toLocaleString();
+  return (
+    <span
+      title={`${check.message} (checked ${when})`}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] ${
+        check.ok
+          ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200"
+          : "border-rose-300/25 bg-rose-300/10 text-rose-200"
+      }`}
+    >
+      {check.ok ? "Verified" : "Check failed"}
+    </span>
+  );
+}
+
 function PlaylistEditorDialog({
   users,
   lines,
@@ -436,7 +513,7 @@ function PlaylistEditorDialog({
   users: AdminUser[];
   lines: LineView[];
   onClose: () => void;
-  onSaved: (message: string) => Promise<void>;
+  onSaved: (message: string, tone?: "ok" | "warn") => Promise<void>;
 }) {
   const [userId, setUserId] = useState(users[0]?.id ?? "");
   const [lineId, setLineId] = useState("");
@@ -473,21 +550,34 @@ function PlaylistEditorDialog({
     setBusy(true);
     setError("");
     try {
-      await adminFetch("/api/admin/playlists", {
-        method: "POST",
-        body: JSON.stringify({
-          userId,
-          lineId,
-          name,
-          type,
-          serverUrl,
-          username,
-          password,
-          m3uUrl,
-          epgUrl,
-        }),
-      });
-      await onSaved(`"${name}" was added.`);
+      const response = await adminFetch<{ playlist: PlaylistView }>(
+        "/api/admin/playlists",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            userId,
+            lineId,
+            name,
+            type,
+            serverUrl,
+            username,
+            password,
+            m3uUrl,
+            epgUrl,
+          }),
+        },
+      );
+      const check = response.playlist?.lastCheck ?? null;
+      if (check && !check.ok) {
+        await onSaved(
+          `"${name}" was added, but validation failed: ${check.message}`,
+          "warn",
+        );
+      } else {
+        await onSaved(
+          check ? `"${name}" was added. ${check.message}` : `"${name}" was added.`,
+        );
+      }
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Could not add playlist",
@@ -706,7 +796,7 @@ function PlaylistEditDialog({
 }: {
   playlist: PlaylistView;
   onClose: () => void;
-  onSaved: (message: string) => Promise<void>;
+  onSaved: (message: string, tone?: "ok" | "warn") => Promise<void>;
 }) {
   const [name, setName] = useState(playlist.name);
   const [type, setType] = useState<PlaylistType>(playlist.type);
@@ -749,11 +839,24 @@ function PlaylistEditDialog({
       if (clearEpg) body.epgUrl = "";
       else if (epgUrl) body.epgUrl = epgUrl;
 
-      await adminFetch(`/api/admin/playlists/${playlist.id}`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      await onSaved(`"${name}" was updated.`);
+      const response = await adminFetch<{ playlist: PlaylistView }>(
+        `/api/admin/playlists/${playlist.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      );
+      const check = response.playlist?.lastCheck ?? null;
+      if (check && !check.ok) {
+        await onSaved(
+          `"${name}" was updated, but validation failed: ${check.message}`,
+          "warn",
+        );
+      } else {
+        await onSaved(
+          check ? `"${name}" was updated. ${check.message}` : `"${name}" was updated.`,
+        );
+      }
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Could not update playlist",

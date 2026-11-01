@@ -3,6 +3,23 @@ export type PlaylistType = "xtream" | "m3u";
 export type PlaylistStatus = "active" | "disabled";
 export type LineStatus = "active" | "disabled";
 
+/**
+ * Result of probing a playlist source (Xtream API or M3U URL) for reachability
+ * and validity. Stored on the playlist so admins can see at a glance whether a
+ * source will actually stream for a client.
+ */
+export type SourceCheck = {
+  ok: boolean;
+  kind: PlaylistType;
+  checkedAt: string;
+  latencyMs: number;
+  message: string;
+  /** M3U only: number of #EXTINF entries seen in the sampled playlist. */
+  channelCount?: number;
+  /** Xtream only: HTTP status returned by player_api.php. */
+  status?: number;
+};
+
 export type AdminUser = {
   id: string;
   username: string;
@@ -35,6 +52,7 @@ export type PlaylistView = {
   endpointHost: string;
   hasSecret: boolean;
   hasEpg: boolean;
+  lastCheck: SourceCheck | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -110,6 +128,7 @@ export type PortalPlaylistView = {
   hasEpg: boolean;
   owner: boolean;
   primary: boolean;
+  lastCheck: SourceCheck | null;
   createdAt: string;
   updatedAt: string;
 };
